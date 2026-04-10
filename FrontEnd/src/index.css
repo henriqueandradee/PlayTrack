@@ -1,0 +1,106 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 73% 14%;
+    --foreground: 0 0% 100%;
+
+    --card: 215 28% 17%;
+    --card-foreground: 0 0% 100%;
+
+    --popover: 215 28% 17%;
+    --popover-foreground: 0 0% 100%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 225 64% 33%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 217 19% 27%;
+    --muted-foreground: 220 13% 91%;
+
+    --accent: 225 64% 33%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 80% 70%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 217 91% 60%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 225 64% 33%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 217 19% 27%;
+    --input: 215 28% 17%;
+    --ring: 217 91% 60%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 210 73% 14%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 225 64% 33%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 217 19% 27%;
+    --sidebar-ring: 217 91% 60%;
+
+    --elevated: 215 28% 17%;
+    --text-secondary: 220 13% 91%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
+  }
+}
+
+@layer utilities {
+  .glass-card {
+    @apply bg-card border border-border rounded-xl;
+  }
+
+  .btn-action-made {
+    @apply bg-card border border-border text-foreground rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 hover:bg-success/20 hover:border-success/50 hover:text-success active:scale-95;
+  }
+
+  .btn-action-miss {
+    @apply bg-card border border-border text-foreground rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 hover:bg-destructive/20 hover:border-destructive/50 hover:text-destructive active:scale-95;
+  }
+
+  .btn-action-assist {
+    @apply bg-card border border-border text-foreground rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 hover:bg-warning/20 hover:border-warning/50 hover:text-warning active:scale-95;
+  }
+
+  .btn-action-default {
+    @apply bg-card border border-border text-foreground rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 hover:bg-primary/20 hover:border-primary/50 hover:text-primary active:scale-95;
+  }
+}
