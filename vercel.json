@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "projects": [
+    {
+      "name": "playtrack-frontend",
+      "rootDirectory": "FrontEnd",
+      "buildCommand": "bun run build",
+      "outputDirectory": "dist"
+    },
+    {
+      "name": "playtrack-backend",
+      "rootDirectory": "BackEnd",
+      "buildCommand": "npm install",
+      "outputDirectory": "."
+    }
+  ]
+}
