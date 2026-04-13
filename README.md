@@ -1,4 +1,4 @@
-# PlayTrack V2
+# PlayTrack
 
 PlayTrack é uma plataforma de análise tática e estatística de basquete para atletas e treinadores. Com um player integrado ao YouTube, o usuário assiste à própria partida e registra jogadas, estatísticas e anotações vinculadas ao momento exato do vídeo.
 
