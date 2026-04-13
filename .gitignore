@@ -1,0 +1,23 @@
+# Environment files (keep local only)
+BackEnd/.env
+BackEnd/.env.*
+!BackEnd/.env.example
+FrontEnd/.env
+FrontEnd/.env.*
+!FrontEnd/.env.example
+
+# Runtime logs
+BackEnd/logs/
+logs/
+
+# Build output
+FrontEnd/dist/
+
+# Dependencies
+node_modules/
+BackEnd/node_modules/
+FrontEnd/node_modules/
+.DS_Store
+
+# Local planning docs
+PLANO_PRODUCAO_SEGURANCA_E_CONFORMIDADE.md
