@@ -325,7 +325,6 @@ const runExportJob = async ({ jobId, userId, video, eventIds, beforeSeconds, aft
 
     const youtubeUrl = `https://www.youtube.com/watch?v=${video.source.videoId}`;
     
-    // Preparar argumentos do yt-dlp
     const ytDlpArgs = [
       '--newline',
       '-f',
@@ -334,7 +333,6 @@ const runExportJob = async ({ jobId, userId, video, eventIds, beforeSeconds, aft
       'mp4',
       '-o',
       inputPath,
-      // Rate limiting extremamente agressivo para evitar erro 429
       '--socket-timeout',
       '30',
       '--sleep-interval',
@@ -345,26 +343,27 @@ const runExportJob = async ({ jobId, userId, video, eventIds, beforeSeconds, aft
       '10',
       '--retry-sleep',
       '60',
-      // Headers realistas
       '--user-agent',
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      // Contornar bloqueios
       '--geo-bypass',
       '--no-check-certificate',
-      '--extractor-args',
-      'youtube:js_runtimes=node',
       youtubeUrl,
     ];
 
-    // Adicionar cookies se disponíveis (para contornar autenticação do YouTube)
+    // Adicionar cookies se disponíveis
     if (process.env.YOUTUBE_COOKIES_FILE && fsSync.existsSync(process.env.YOUTUBE_COOKIES_FILE)) {
       ytDlpArgs.splice(ytDlpArgs.length - 1, 0, '--cookies', process.env.YOUTUBE_COOKIES_FILE);
     }
 
-    await runCommand(
-      ytDlpBinary,
-      ytDlpArgs,
-      {
+    updateJob(jobId, {
+      stage: 'downloading',
+      progress: 10,
+      message: 'Baixando video do YouTube...',
+      totalDurationSeconds,
+    });
+
+    try {
+      await runCommand(ytDlpBinary, ytDlpArgs, {
         timeoutMs: YT_DLP_TIMEOUT_MS,
         onStdoutLine: (line) => {
           const percentMatch = line.match(/(\d+(?:\.\d+)?)%/);
@@ -378,8 +377,20 @@ const runExportJob = async ({ jobId, userId, video, eventIds, beforeSeconds, aft
             message: `Baixando video do YouTube (${Math.round(percent)}%)...`,
           });
         },
-      },
-    );
+      });
+    } catch (downloadErr) {
+      // Se YouTube estiver bloqueando, dar feedback claro
+      const isBotCheck = downloadErr.message?.includes('confirm you\'re not a bot');
+      const isRateLimit = downloadErr.message?.includes('429');
+      
+      if (isBotCheck || isRateLimit) {
+        throw Object.assign(new Error(
+          'YouTube está temporariamente bloqueando downloads. Tente novamente em 1-2 horas. ' +
+          'Para contornar, entre em contato com o suporte.'
+        ), { code: 'YOUTUBE_BLOCKED' });
+      }
+      throw downloadErr;
+    }
 
     updateJob(jobId, {
       stage: 'processing',
