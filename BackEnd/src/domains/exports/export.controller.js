@@ -4,6 +4,7 @@ const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 const { spawn } = require('child_process');
+const https = require('https');
 
 const Event = require('../../models/Event');
 const Video = require('../../models/Video');
@@ -228,6 +229,94 @@ const scheduleJobCleanup = (jobId) => {
   }, EXPORT_JOB_RETENTION_MS);
 };
 
+// Fallback: Download de YouTube via serviço externo quando yt-dlp for bloqueado
+const downloadVideoViaFallback = (videoUrl, outputPath, onProgress) => {
+  return new Promise((resolve, reject) => {
+    try {
+      // Usar cobalt.tools - serviço gratuito que contorna bloqueios do YouTube
+      const cobaltUrl = new URL('https://api.cobalt.tools/api/json');
+      
+      const postData = JSON.stringify({
+        url: videoUrl,
+        videoFormat: 'mp4',
+        audioFormat: 'm4a',
+        disableMetrics: true,
+      });
+
+      const options = {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Content-Length': postData.length,
+        },
+        timeout:30000,
+      };
+
+      const request = https.request(
+        'https://api.cobalt.tools/api/json',
+        options,
+        (response) => {
+          let data = '';
+
+          response.on('data', (chunk) => {
+            data += chunk;
+          });
+
+          response.on('end', () => {
+            try {
+              const result = JSON.parse(data);
+
+              // Se sucesso, resultado contém URL de download
+              if (result.status === 'success' && result.url) {
+                // Fazer download do arquivo via cobalt
+                https.get(result.url, (dlResponse) => {
+                  const file = fsSync.createWriteStream(outputPath);
+                  let totalSize = 0;
+                  const contentLength = parseInt(dlResponse.headers['content-length'], 10) || 0;
+
+                  dlResponse.pipe(file);
+
+                  dlResponse.on('data', (chunk) => {
+                    totalSize += chunk.length;
+                    if (contentLength > 0 && typeof onProgress === 'function') {
+                      const percent = Math.round((totalSize / contentLength) * 100);
+                      onProgress(`${percent}%`);
+                    }
+                  });
+
+                  file.on('finish', () => {
+                    file.close(() => resolve());
+                  });
+
+                  file.on('error', reject);
+                }).on('error', reject);
+              } else if (result.error) {
+                reject(new Error(`Cobalt error: ${result.error}`));
+              } else {
+                reject(new Error('Resposta inválida do serviço de fallback'));
+              }
+            } catch (parseErr) {
+              reject(new Error(`Erro ao processar resposta: ${parseErr.message}`));
+            }
+          });
+        }
+      );
+
+      request.on('error', reject);
+      request.on('timeout', () => {
+        request.destroy();
+        reject(new Error('Timeout ao contatar serviço de fallback'));
+      });
+
+      request.write(postData);
+      request.end();
+    } catch (err) {
+      reject(err);
+    }
+  });
+};
+
 const processExportQueue = () => {
   while (runningExportWorkers < EXPORT_MAX_CONCURRENT_JOBS && exportQueue.length > 0) {
     const queued = exportQueue.shift();
@@ -355,13 +444,11 @@ const runExportJob = async ({ jobId, userId, video, eventIds, beforeSeconds, aft
       ytDlpArgs.splice(ytDlpArgs.length - 1, 0, '--cookies', process.env.YOUTUBE_COOKIES_FILE);
     }
 
-    updateJob(jobId, {
-      stage: 'downloading',
-      progress: 10,
-      message: 'Baixando video do YouTube...',
-      totalDurationSeconds,
-    });
+    //  Tentar fazer download com fallback automático
+    let downloadSuccess = false;
+    let lastError = null;
 
+    // Tentativa 1: yt-dlp direto
     try {
       await runCommand(ytDlpBinary, ytDlpArgs, {
         timeoutMs: YT_DLP_TIMEOUT_MS,
@@ -378,18 +465,42 @@ const runExportJob = async ({ jobId, userId, video, eventIds, beforeSeconds, aft
           });
         },
       });
-    } catch (downloadErr) {
-      // Se YouTube estiver bloqueando, dar feedback claro
-      const isBotCheck = downloadErr.message?.includes('confirm you\'re not a bot');
-      const isRateLimit = downloadErr.message?.includes('429');
+      downloadSuccess = true;
+    } catch (err) {
+      lastError = err;
+      const errorMsg = err.message?.toLowerCase() || '';
+      const isBotCheck = errorMsg.includes('confirm you\'re not a bot') || errorMsg.includes('sign in');
+      const isRateLimit = errorMsg.includes('429') || errorMsg.includes('too many requests');
       
+      // Se for bloqueio de bot ou rate limit, tentar fallback
       if (isBotCheck || isRateLimit) {
-        throw Object.assign(new Error(
-          'YouTube está temporariamente bloqueando downloads. Tente novamente em 1-2 horas. ' +
-          'Para contornar, entre em contato com o suporte.'
-        ), { code: 'YOUTUBE_BLOCKED' });
+        updateJob(jobId, {
+          stage: 'downloading',
+          progress: 15,
+          message: 'YouTube bloqueou. Tentando método alternativo...',
+        });
+
+        try {
+          await downloadVideoViaFallback(youtubeUrl, inputPath, (progress) => {
+            updateJob(jobId, {
+              stage: 'downloading',
+              progress: Math.max(15, 10 + Math.random() * 30),
+              message: `Usando método alternativo (${progress})...`,
+            });
+          });
+          downloadSuccess = true;
+        } catch (fallbackErr) {
+          lastError = fallbackErr;
+        }
       }
-      throw downloadErr;
+    }
+
+    if (!downloadSuccess) {
+      const errorMsg = lastError?.message || 'Erro desconhecido ao baixar vídeo';
+      throw Object.assign(new Error(
+        `Não foi possível baixar o vídeo: ${errorMsg}. ` +
+        `O YouTube está temporariamente bloqueando downloads. Tente novamente em 1-2 horas.`
+      ), { code: 'VIDEO_DOWNLOAD_FAILED' });
     }
 
     updateJob(jobId, {
