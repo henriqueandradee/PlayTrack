@@ -929,3 +929,84 @@ exports.downloadVideoExportJob = async (req, res, next) => {
     next(err);
   }
 };
+
+/**
+ * GET /export/jobs
+ * Listar todos os jobs de exportação do usuário (queued, running, completed, failed)
+ */
+exports.listUserJobs = async (req, res, next) => {
+  try {
+    const userJobs = Array.from(exportJobs.values())
+      .filter(job => job.userId === req.user._id.toString())
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .map(job => ({
+        id: job.id,
+        status: job.status,
+        stage: job.stage,
+        progress: Math.round(job.progress || 0),
+        queuePosition: job.queuePosition,
+        message: job.message,
+        error: job.error,
+        createdAt: job.createdAt,
+        updatedAt: job.updatedAt,
+      }));
+
+    return success(res, {
+      jobs: userJobs,
+      total: userJobs.length,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * DELETE /export/jobs/:jobId
+ * Cancelar um job de exportação (remove da fila se queued, ou marca como cancelled)
+ */
+exports.cancelJob = async (req, res, next) => {
+  try {
+    const job = exportJobs.get(req.params.jobId);
+    
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        message: 'Job de exportação não encontrado.',
+        code: 'EXPORT_JOB_NOT_FOUND',
+      });
+    }
+
+    if (job.userId !== req.user._id.toString()) {
+      return forbidden(res);
+    }
+
+    // Se está na fila, remover da fila
+    const queueIndex = exportQueue.findIndex(q => q.jobId === req.params.jobId);
+    if (queueIndex !== -1) {
+      exportQueue.splice(queueIndex, 1);
+      refreshQueuePositions();
+    }
+
+    // Marcar job como cancelado
+    updateJob(req.params.jobId, {
+      status: 'cancelled',
+      stage: 'cancelled',
+      message: 'Exportação cancelada pelo usuário.',
+      progress: Math.round(job.progress || 0),
+    });
+
+    // Limpar arquivos témp se existirem
+    await cleanupJobFiles(job);
+
+    // Agendar limpeza do job da memória
+    scheduleJobCleanup(req.params.jobId);
+
+    return success(res, {
+      id: req.params.jobId,
+      status: 'cancelled',
+      message: 'Job cancelado com sucesso.',
+    });
+  } catch (err) {
+    next(err);
+  }
+};
