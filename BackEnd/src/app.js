@@ -45,12 +45,8 @@ if (config.env === 'production' && (config.cors.origin === '*' || allowedOrigins
 app.use(
   cors({
     origin: (origin, cb) => {
-      // Em desenvolvimento/teste, permite requisições sem header Origin.
-      // Em produção, bloqueia para reduzir abuso de clients não previstos.
-      if (!origin) {
-        if (config.env !== 'production') return cb(null, true);
-        return cb(new Error('CORS origem ausente não permitida em produção'));
-      }
+      // Se não houver origem (requisições locais), permite
+      if (!origin) return cb(null, true);
       
       // Verifica se origin está na lista permitida
       if (allowedOrigins.includes(origin)) return cb(null, true);
