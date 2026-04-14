@@ -1,10 +1,6 @@
 [build]
-builder = "nixpacks"
+builder = "dockerfile"
+dockerfilePath = "BackEnd/Dockerfile"
 
-[build.nixpacks]
-# Instalar dependências do sistema: yt-dlp, ffmpeg, python
-packages = ["yt-dlp", "ffmpeg", "python3"]
-
-[env]
-# Definir PATH para as dependências
-PATH = "/nix/store/*/bin:$PATH"
+[deploy]
+startCommand = "npm start"
