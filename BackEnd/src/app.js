@@ -80,6 +80,10 @@ if (config.env !== 'test') {
 }
 
 // ---- Health check ----
+app.get('/', (req, res) =>
+  res.status(200).json({ status: 'ok', message: 'PlayTrack API v2 is running' })
+);
+
 app.get('/health', (req, res) =>
   res.status(200).json({ status: 'ok' })
 );
