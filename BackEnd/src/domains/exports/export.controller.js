@@ -344,7 +344,7 @@ const runExportJob = async ({ jobId, userId, video, eventIds, beforeSeconds, aft
         '--retries',
         '5',
         '--retry-sleep',
-        'http=10',
+        '10',
         '--user-agent',
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         '--extractor-args',
