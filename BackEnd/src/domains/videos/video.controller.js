@@ -8,11 +8,21 @@ const { success, created, notFound, forbidden } = require('../../shared/response
 
 /**
  * Extract YouTube video ID from various URL formats.
- * Supports: youtu.be/ID, youtube.com/watch?v=ID, youtube.com/embed/ID
+ * Supports:
+ *  - youtu.be/VIDEO_ID
+ *  - youtu.be/VIDEO_ID?si=...
+ *  - youtube.com/watch?v=VIDEO_ID
+ *  - youtube.com/watch?v=VIDEO_ID&...
+ *  - youtube.com/embed/VIDEO_ID
  */
 const extractYouTubeId = (url) => {
   const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+    // Standard URL: youtube.com/watch?v=VIDEO_ID (with or without additional params)
+    /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
+    // Short share URL: youtu.be/VIDEO_ID (with or without ?si= or other params)
+    /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+    // Embed URL: youtube.com/embed/VIDEO_ID
+    /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
   ];
   for (const pattern of patterns) {
     const match = url.match(pattern);

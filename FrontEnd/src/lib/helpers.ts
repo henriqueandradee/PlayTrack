@@ -6,7 +6,13 @@ export const formatTime = (seconds: number): string => {
 
 export const extractYouTubeId = (url: string): string | null => {
   const patterns = [
-    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+    // Standard URL: youtube.com/watch?v=VIDEO_ID (with or without additional params like &list=, &t=)
+    /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
+    // Short share URL: youtu.be/VIDEO_ID (with or without ?si= or other params)
+    /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+    // Embed URL: youtube.com/embed/VIDEO_ID
+    /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+    // Just the ID
     /^([a-zA-Z0-9_-]{11})$/,
   ];
   for (const pattern of patterns) {
