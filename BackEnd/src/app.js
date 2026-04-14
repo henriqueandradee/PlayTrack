@@ -21,6 +21,11 @@ const complianceRoutes    = require('./domains/compliance/compliance.routes');
 
 const app = express();
 
+// ---- Trust Proxy ----
+// Necessário para Railway, Vercel, Heroku e outros reverse proxies
+// Permite que express-rate-limit identifique corretamente o IP do usuário via X-Forwarded-For
+app.set('trust proxy', 1);
+
 // ---- Security Headers ----
 app.use(helmet());
 app.use(requestId);
