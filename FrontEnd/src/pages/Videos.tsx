@@ -95,10 +95,10 @@ const Videos = () => {
       errors.push('URL do YouTube é obrigatória para modo YouTube');
     }
     if (analysisMode === 'YouTube' && youtubeUrl.trim()) {
-      // Aceita: youtu.be/VIDEO_ID, youtu.be/VIDEO_ID?si=..., youtube.com/watch?v=VIDEO_ID, youtube.com/watch?v=VIDEO_ID&..., youtube.com/embed/VIDEO_ID, etc.
+      // Aceita: youtu.be/VIDEO_ID, youtu.be/VIDEO_ID?si=..., youtube.com/watch?v=VIDEO_ID, youtube.com/live/VIDEO_ID, etc.
       const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)\/.+/;
       if (!youtubeRegex.test(youtubeUrl)) {
-        errors.push('URL do YouTube inválida. Formatos aceitos: youtu.be/VIDEO_ID, youtube.com/watch?v=VIDEO_ID, youtube.com/embed/VIDEO_ID ou link de compartilhamento');
+        errors.push('URL do YouTube inválida. Formatos aceitos: youtu.be/VIDEO_ID, youtube.com/watch?v=VIDEO_ID, youtube.com/live/VIDEO_ID, link de compartilhamento ou embed');
       }
     }
     if (scope === 'multi atleta' && athletes.length === 0) {
@@ -499,10 +499,10 @@ const Videos = () => {
                     value={youtubeUrl}
                     onChange={(e) => setYoutubeUrl(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-lg bg-elevated border border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                    placeholder="https://www.youtube.com/watch?v=... ou https://youtu.be/..."
+                    placeholder="https://www.youtube.com/live/... ou https://youtu.be/..."
                   />
                   <p className="text-xs text-muted-foreground mt-2">
-                    Formatos aceitos: youtu.be/VIDEO_ID, link de compartilhamento (youtu.be/VIDEO_ID?si=...), youtube.com/watch?v=VIDEO_ID ou youtube.com/embed/VIDEO_ID
+                    Formatos aceitos: youtu.be/VIDEO_ID, link de compartilhamento (youtu.be/VIDEO_ID?si=...), youtube.com/watch?v=VIDEO_ID, youtube.com/live/VIDEO_ID (livestream) ou youtube.com/embed/VIDEO_ID
                   </p>
                 </div>
               )}

@@ -9,6 +9,8 @@ const { success, created, notFound, forbidden } = require('../../shared/response
 /**
  * Extract YouTube video ID from various URL formats.
  * Supports:
+ *  - youtube.com/live/VIDEO_ID (livestream)
+ *  - youtube.com/live/VIDEO_ID?si=...
  *  - youtu.be/VIDEO_ID
  *  - youtu.be/VIDEO_ID?si=...
  *  - youtube.com/watch?v=VIDEO_ID
@@ -17,6 +19,8 @@ const { success, created, notFound, forbidden } = require('../../shared/response
  */
 const extractYouTubeId = (url) => {
   const patterns = [
+    // Livestream: youtube.com/live/VIDEO_ID (with or without ?si= or other params)
+    /(?:youtube\.com\/live\/)([a-zA-Z0-9_-]{11})/,
     // Standard URL: youtube.com/watch?v=VIDEO_ID (with or without additional params)
     /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
     // Short share URL: youtu.be/VIDEO_ID (with or without ?si= or other params)
