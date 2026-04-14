@@ -12,7 +12,16 @@ export const setIsHydrating = (value: boolean) => {
 
 const api = axios.create({
   baseURL,
-  withCredentials: true, // ✅ Envia e recebe cookies automaticamente
+  // ✅ Removido: withCredentials (usaremos Authorization header agora)
+});
+
+// ✅ Interceptor de request para adicionar token via Authorization header
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 api.interceptors.response.use(
@@ -20,7 +29,8 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401 && !isHydrating) {
       // Token expirou ou é inválido (e não é durante a hydration inicial)
-      // Redireciona para login sem full page reload
+      // Limpa token e redireciona para login
+      localStorage.removeItem('token');
       const currentUrl = window.location.pathname;
       if (currentUrl !== '/login' && currentUrl !== '/register') {
         window.location.href = '/login';

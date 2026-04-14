@@ -53,8 +53,8 @@ const Register = () => {
           privacyAccepted,
         },
       });
-      // ✅ Token está em httpOnly cookie, só armazenamos user
-      login(res.data.data.user);
+      // ✅ Token agora é retornado na resposta, passamos para authStore
+      login(res.data.data.user, res.data.data.token);
       navigate('/dashboard');
     } catch (err) {
       setError(getErrorMessage(err));

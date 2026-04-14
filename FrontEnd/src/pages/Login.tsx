@@ -19,8 +19,8 @@ const Login = () => {
     setLoading(true);
     try {
       const res = await api.post('/auth/login', { email, password });
-      // ✅ Token está em httpOnly cookie, só armazenamos user
-      login(res.data.data.user);
+      // ✅ Token agora é retornado na resposta, passamos para authStore
+      login(res.data.data.user, res.data.data.token);
       navigate('/dashboard');
     } catch (err) {
       setError(getErrorMessage(err));

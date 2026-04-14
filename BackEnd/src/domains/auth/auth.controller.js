@@ -1,7 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../../models/User');
 const config = require('../../config');
-const { setTokenCookie, clearTokenCookie } = require('../../shared/cookieHelper');
 const { validatePassword } = require('../../shared/passwordValidator');
 const { validateAge } = require('../../shared/ageValidator');
 const { validateRequiredConsents } = require('../../shared/consentValidator');
@@ -79,12 +78,11 @@ exports.register = async (req, res, next) => {
 
     const token = generateToken(user._id, user.tokenVersion);
 
-    // ✅ Set httpOnly cookie
-    setTokenCookie(res, token);
-
+    // ✅ Retorna token no JSON (frontend salva em localStorage)
     return res.status(201).json({
       success: true,
       data: {
+        token, // ✅ Client-side irá usar via Authorization header
         user: {
           id: user._id,
           username: user.username,
@@ -93,7 +91,7 @@ exports.register = async (req, res, next) => {
           usage: user.usage,
         },
       },
-      message: 'Registered successfully. Token set in secure cookie.',
+      message: 'Registered successfully.',
     });
   } catch (err) {
     next(err);
@@ -128,12 +126,11 @@ exports.login = async (req, res, next) => {
 
     const token = generateToken(user._id, user.tokenVersion);
 
-    // ✅ Set httpOnly cookie
-    setTokenCookie(res, token);
-
+    // ✅ Retorna token no JSON (frontend salva em localStorage)
     return res.status(200).json({
       success: true,
       data: {
+        token, // ✅ Client-side irá usar via Authorization header
         user: {
           id: user._id,
           username: user.username,
@@ -142,7 +139,7 @@ exports.login = async (req, res, next) => {
           usage: user.usage,
         },
       },
-      message: 'Logged in successfully. Token set in secure cookie.',
+      message: 'Logged in successfully.',
     });
   } catch (err) {
     next(err);
@@ -172,7 +169,8 @@ exports.getMe = async (req, res) => {
  * Limpa o cookie de token
  */
 exports.logout = async (req, res) => {
-  clearTokenCookie(res);
+  // ❌ Cookie clearance removed - using Authorization header instead
+  // Frontend handles token cleanup via localStorage
   res.json({
     success: true,
     message: 'Logged out successfully',
