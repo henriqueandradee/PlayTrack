@@ -16,11 +16,15 @@ RUN apk add --no-cache \
 # Instalar yt-dlp diretamente com pip (sem venv para facilitar acesso ao Node.js)
 RUN pip install --no-cache-dir --break-system-packages yt-dlp
 
+# Instalar Deno (JS runtime necessário para YouTube extraction)
+RUN curl -fsSL https://deno.land/install.sh | sh
+ENV PATH="/root/.deno/bin:$PATH"
+
 # Garantir que Node.js está no PATH para yt-dlp
 RUN ln -sf /usr/local/bin/node /usr/bin/node || true
 
 # Verificar instalação e ver versões
-RUN yt-dlp --version && node --version
+RUN yt-dlp --version && deno --version && node --version
 
 WORKDIR /app
 

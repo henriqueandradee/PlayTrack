@@ -351,9 +351,9 @@ const runExportJob = async ({ jobId, userId, video, eventIds, beforeSeconds, aft
         // Contornar bloqueios geográficos
         '--geo-bypass',
         '--no-check-certificate',
-        // Tentar usar Node.js se disponível
+        // Usar Deno como JS runtime para YouTube extraction
         '--extractor-args',
-        'youtube:js_runtimes=node',
+        'youtube:js_runtimes=deno',
         youtubeUrl,
       ],
       {
