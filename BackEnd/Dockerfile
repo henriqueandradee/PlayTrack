@@ -14,9 +14,8 @@ RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --no-cache-dir yt-dlp
 
-# Instalar Deno (necessário para YouTube extraction via JavaScript)
-RUN curl -fsSL https://deno.land/x/install/install.sh | sh
-ENV PATH="/root/.deno/bin:$PATH"
+# Node.js já está disponível na imagem node:20-alpine
+# Será usado como JS runtime para yt-dlp
 
 WORKDIR /app
 
