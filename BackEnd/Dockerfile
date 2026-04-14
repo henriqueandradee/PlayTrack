@@ -13,14 +13,18 @@ RUN apk add --no-cache \
     gcc \
     musl-dev
 
-# Instalar yt-dlp diretamente com pip
+# Instalar yt-dlp com suporte a Node.js
 RUN pip install --no-cache-dir --break-system-packages yt-dlp
 
-# Garantir que Node.js está no PATH
-RUN ln -sf /usr/local/bin/node /usr/bin/node || true
+# Instalar dependências npm globais para yt-dlp (para JS runtime)
+RUN npm install -g --no-save esbuild
+
+# Criar symlinks para Node.js em múltiplos locais (para yt-dlp encontrar)
+RUN ln -sf /usr/local/bin/node /usr/bin/node && \
+    ln -sf /usr/local/bin/npm /usr/bin/npm
 
 # Verificar instalação
-RUN yt-dlp --version && node --version
+RUN yt-dlp --version && node --version && npm --version
 
 WORKDIR /app
 

@@ -334,23 +334,25 @@ const runExportJob = async ({ jobId, userId, video, eventIds, beforeSeconds, aft
       'mp4',
       '-o',
       inputPath,
-      // Argumentos para contornar rate limiting e bloqueios do YouTube
+      // Rate limiting extremamente agressivo para evitar erro 429
       '--socket-timeout',
       '30',
       '--sleep-interval',
-      '15',
-      '--sleep-requests',
-      '3',
-      '--retries',
-      '7',
-      '--retry-sleep',
       '30',
+      '--sleep-requests',
+      '5',
+      '--retries',
+      '10',
+      '--retry-sleep',
+      '60',
       // Headers realistas
       '--user-agent',
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      // Contornar bloqueios geográficos
+      // Contornar bloqueios
       '--geo-bypass',
       '--no-check-certificate',
+      '--extractor-args',
+      'youtube:js_runtimes=node',
       youtubeUrl,
     ];
 

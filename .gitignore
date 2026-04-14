@@ -10,6 +10,9 @@ FrontEnd/.env.*
 BackEnd/logs/
 logs/
 
+# YouTube cookies (sensitive!)
+BackEnd/config/cookies.txt
+
 # Build output
 FrontEnd/dist/
 
