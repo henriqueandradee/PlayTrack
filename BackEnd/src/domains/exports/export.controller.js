@@ -324,38 +324,44 @@ const runExportJob = async ({ jobId, userId, video, eventIds, beforeSeconds, aft
     });
 
     const youtubeUrl = `https://www.youtube.com/watch?v=${video.source.videoId}`;
+    
+    // Preparar argumentos do yt-dlp
+    const ytDlpArgs = [
+      '--newline',
+      '-f',
+      'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/b',
+      '--merge-output-format',
+      'mp4',
+      '-o',
+      inputPath,
+      // Argumentos para contornar rate limiting e bloqueios do YouTube
+      '--socket-timeout',
+      '30',
+      '--sleep-interval',
+      '15',
+      '--sleep-requests',
+      '3',
+      '--retries',
+      '7',
+      '--retry-sleep',
+      '30',
+      // Headers realistas
+      '--user-agent',
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      // Contornar bloqueios geográficos
+      '--geo-bypass',
+      '--no-check-certificate',
+      youtubeUrl,
+    ];
+
+    // Adicionar cookies se disponíveis (para contornar autenticação do YouTube)
+    if (process.env.YOUTUBE_COOKIES_FILE && fsSync.existsSync(process.env.YOUTUBE_COOKIES_FILE)) {
+      ytDlpArgs.splice(ytDlpArgs.length - 1, 0, '--cookies', process.env.YOUTUBE_COOKIES_FILE);
+    }
+
     await runCommand(
       ytDlpBinary,
-      [
-        '--newline',
-        '-f',
-        'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]/b',
-        '--merge-output-format',
-        'mp4',
-        '-o',
-        inputPath,
-        // Argumentos para contornar rate limiting e bloqueios do YouTube
-        '--socket-timeout',
-        '30',
-        '--sleep-interval',
-        '15',
-        '--sleep-requests',
-        '3',
-        '--retries',
-        '7',
-        '--retry-sleep',
-        '30',
-        // Headers realistas
-        '--user-agent',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        // Contornar bloqueios geográficos
-        '--geo-bypass',
-        '--no-check-certificate',
-        // Usar Deno como JS runtime para YouTube extraction
-        '--extractor-args',
-        'youtube:js_runtimes=deno',
-        youtubeUrl,
-      ],
+      ytDlpArgs,
       {
         timeoutMs: YT_DLP_TIMEOUT_MS,
         onStdoutLine: (line) => {

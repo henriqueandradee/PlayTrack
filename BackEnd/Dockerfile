@@ -13,25 +13,14 @@ RUN apk add --no-cache \
     gcc \
     musl-dev
 
-# Instalar yt-dlp diretamente com pip (sem venv para facilitar acesso ao Node.js)
+# Instalar yt-dlp diretamente com pip
 RUN pip install --no-cache-dir --break-system-packages yt-dlp
 
-# Instalar Deno (JS runtime necessário para YouTube extraction)
-# Usar download direto para Alpine Linux
-RUN mkdir -p /opt/deno && \
-    cd /tmp && \
-    curl -fsSL https://github.com/denoland/deno/releases/download/v1.41.3/deno-x86_64-unknown-linux-musl.zip -o deno.zip && \
-    unzip deno.zip && \
-    mv deno /usr/local/bin/ && \
-    chmod +x /usr/local/bin/deno && \
-    rm deno.zip
-
-# Garantir que Node.js e Deno estão no PATH
-RUN ln -sf /usr/local/bin/node /usr/bin/node || true && \
-    ln -sf /usr/local/bin/deno /usr/bin/deno || true
+# Garantir que Node.js está no PATH
+RUN ln -sf /usr/local/bin/node /usr/bin/node || true
 
 # Verificar instalação
-RUN yt-dlp --version && deno --version && node --version
+RUN yt-dlp --version && node --version
 
 WORKDIR /app
 
