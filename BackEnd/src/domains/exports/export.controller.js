@@ -229,13 +229,53 @@ const scheduleJobCleanup = (jobId) => {
   }, EXPORT_JOB_RETENTION_MS);
 };
 
-// Fallback: Download de YouTube via serviço externo quando yt-dlp for bloqueado
-const downloadVideoViaFallback = (videoUrl, outputPath, onProgress) => {
+// Fallback: Download de YouTube via múltiplos serviços externos
+const downloadVideoViaFallback = async (videoUrl, outputPath, onProgress) => {
+  const videoId = videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/)?.[1];
+  if (!videoId) {
+    throw new Error('Video ID não pode ser extraído da URL');
+  }
+
+  const fallbackServices = [
+    {
+      name: 'cobalt.tools',
+      fn: () => downloadViaCobalt(videoUrl, outputPath, onProgress),
+    },
+    {
+      name: 'piped-api',
+      fn: () => downloadViaPiped(videoId, outputPath, onProgress),
+    },
+    {
+      name: 'direct-youtube-api',
+      fn: () => downloadViaYoutubeNocookie(videoId, outputPath, onProgress),
+    },
+  ];
+
+  let lastError = null;
+
+  for (const service of fallbackServices) {
+    try {
+      console.log(`[Fallback] Tentando ${service.name}...`);
+      await service.fn();
+      console.log(`[Fallback] ✓ ${service.name} funcionou!`);
+      return; // Sucesso
+    } catch (err) {
+      lastError = err;
+      console.warn(`[Fallback] ✗ ${service.name} falhou:`, err.message);
+      // Continua tentando próximo serviço
+    }
+  }
+
+  // Se nenhum funcionou, lançar erro
+  throw Object.assign(new Error(
+    `Todos os métodos de fallback falharam. Último erro: ${lastError?.message || 'desconhecido'}`
+  ), { code: 'ALL_FALLBACK_METHODS_FAILED' });
+};
+
+// Método 1: Cobalt.tools
+const downloadViaCobalt = (videoUrl, outputPath, onProgress) => {
   return new Promise((resolve, reject) => {
     try {
-      // Usar cobalt.tools - serviço gratuito que contorna bloqueios do YouTube
-      const cobaltUrl = new URL('https://api.cobalt.tools/api/json');
-      
       const postData = JSON.stringify({
         url: videoUrl,
         videoFormat: 'mp4',
@@ -249,68 +289,184 @@ const downloadVideoViaFallback = (videoUrl, outputPath, onProgress) => {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
           'Content-Length': postData.length,
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         },
-        timeout:30000,
+        timeout: 30000,
       };
 
-      const request = https.request(
-        'https://api.cobalt.tools/api/json',
-        options,
-        (response) => {
-          let data = '';
+      const request = https.request('https://api.cobalt.tools/api/json', options, (response) => {
+        let data = '';
 
-          response.on('data', (chunk) => {
-            data += chunk;
-          });
+        response.on('data', (chunk) => {
+          data += chunk;
+        });
 
-          response.on('end', () => {
-            try {
-              const result = JSON.parse(data);
-
-              // Se sucesso, resultado contém URL de download
-              if (result.status === 'success' && result.url) {
-                // Fazer download do arquivo via cobalt
-                https.get(result.url, (dlResponse) => {
-                  const file = fsSync.createWriteStream(outputPath);
-                  let totalSize = 0;
-                  const contentLength = parseInt(dlResponse.headers['content-length'], 10) || 0;
-
-                  dlResponse.pipe(file);
-
-                  dlResponse.on('data', (chunk) => {
-                    totalSize += chunk.length;
-                    if (contentLength > 0 && typeof onProgress === 'function') {
-                      const percent = Math.round((totalSize / contentLength) * 100);
-                      onProgress(`${percent}%`);
-                    }
-                  });
-
-                  file.on('finish', () => {
-                    file.close(() => resolve());
-                  });
-
-                  file.on('error', reject);
-                }).on('error', reject);
-              } else if (result.error) {
-                reject(new Error(`Cobalt error: ${result.error}`));
-              } else {
-                reject(new Error('Resposta inválida do serviço de fallback'));
-              }
-            } catch (parseErr) {
-              reject(new Error(`Erro ao processar resposta: ${parseErr.message}`));
+        response.on('end', () => {
+          try {
+            // Verificar se é HTML (erro)
+            if (data.startsWith('<!DOCTYPE') || data.startsWith('<html')) {
+              reject(new Error('Cobalt retornou HTML em vez de JSON (possível rate limit ou erro do serviço)'));
+              return;
             }
-          });
-        }
-      );
+
+            const result = JSON.parse(data);
+
+            if (result.status === 'success' && result.url) {
+              downloadFromUrl(result.url, outputPath, onProgress)
+                .then(resolve)
+                .catch(reject);
+            } else if (result.status === 'error') {
+              reject(new Error(`Cobalt error: ${result.error || 'desconhecido'}`));
+            } else {
+              reject(new Error(`Resposta inesperada do Cobalt: ${JSON.stringify(result).substring(0, 100)}`));
+            }
+          } catch (parseErr) {
+            reject(new Error(`Erro ao parsear resposta do Cobalt: ${parseErr.message}`));
+          }
+        });
+      });
 
       request.on('error', reject);
       request.on('timeout', () => {
         request.destroy();
-        reject(new Error('Timeout ao contatar serviço de fallback'));
+        reject(new Error('Timeout ao contatar Cobalt'));
       });
 
       request.write(postData);
       request.end();
+    } catch (err) {
+      reject(err);
+    }
+  });
+};
+
+// Método 2: PipedAPI (mirror do YouTube)
+const downloadViaPiped = (videoId, outputPath, onProgress) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const piped = `https://pipedapi.kavin.rocks/streams/${videoId}`;
+
+      https.get(piped, { timeout: 15000 }, (response) => {
+        let data = '';
+
+        response.on('data', (chunk) => {
+          data += chunk;
+        });
+
+        response.on('end', () => {
+          try {
+            if (response.statusCode !== 200) {
+              reject(new Error(`PipedAPI retornou ${response.statusCode}`));
+              return;
+            }
+
+            const info = JSON.parse(data);
+            
+            if (!info.videoStreams || info.videoStreams.length === 0) {
+              reject(new Error('Nenhum stream de vídeo encontrado no PipedAPI'));
+              return;
+            }
+
+            // Pegar stream de melhor qualidade
+            const stream = info.videoStreams.sort((a, b) => (b.width || 0) - (a.width || 0))[0];
+            
+            if (!stream?.url) {
+              reject(new Error('Stream URL não encontrada'));
+              return;
+            }
+
+            downloadFromUrl(stream.url, outputPath, onProgress)
+              .then(resolve)
+              .catch(reject);
+          } catch (parseErr) {
+            reject(new Error(`Erro ao processar resposta do PipedAPI: ${parseErr.message}`));
+          }
+        });
+      }).on('error', reject);
+    } catch (err) {
+      reject(err);
+    }
+  });
+};
+
+// Método 3: YouTube com origem falsificada
+const downloadViaYoutubeNocookie = (videoId, outputPath, onProgress) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
+      const options = {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Referer': 'https://www.google.com/',
+        },
+        timeout: 20000,
+      };
+
+      https.get(youtubeUrl, options, (response) => {
+        let html = '';
+
+        response.on('data', (chunk) => {
+          html += chunk;
+        });
+
+        response.on('end', () => {
+          try {
+            // Procurar video info na página
+            const match = html.match(/"videoDetails":\{.*?"videoId":"([^"]+)"/);
+            if (!match || match[1] !== videoId) {
+              reject(new Error('YouTube nocookie: Video details não encontrados'));
+              return;
+            }
+
+            reject(new Error('YouTube nocookie: Necessário parsing complexo de video, falha esperada'));
+          } catch (parseErr) {
+            reject(new Error(`YouTube nocookie parse error: ${parseErr.message}`));
+          }
+        });
+      }).on('error', reject);
+    } catch (err) {
+      reject(err);
+    }
+  });
+};
+
+// Helper: Download de URL para arquivo
+const downloadFromUrl = (url, outputPath, onProgress) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const protocol = url.startsWith('https') ? https : require('http');
+
+      protocol.get(url, { timeout: 60000 }, (response) => {
+        if (response.statusCode !== 200) {
+          reject(new Error(`HTTP ${response.statusCode} ao baixar arquivo`));
+          return;
+        }
+
+        const file = fsSync.createWriteStream(outputPath);
+        const contentLength = parseInt(response.headers['content-length'], 10) || 0;
+        let downloaded = 0;
+
+        response.on('data', (chunk) => {
+          downloaded += chunk.length;
+          if (contentLength > 0 && typeof onProgress === 'function') {
+            const percent = Math.round((downloaded / contentLength) * 100);
+            onProgress(`${percent}%`);
+          }
+        });
+
+        response.pipe(file);
+
+        file.on('finish', () => {
+          file.close(() => resolve());
+        });
+
+        file.on('error', (err) => {
+          fsSync.unlink(outputPath, () => {});
+          reject(err);
+        });
+      }).on('error', reject);
     } catch (err) {
       reject(err);
     }
