@@ -7,17 +7,20 @@ RUN apk add --no-cache \
     ffmpeg \
     curl \
     ca-certificates \
-    unzip
+    unzip \
+    libffi-dev \
+    openssl-dev \
+    gcc \
+    musl-dev
 
-# Criar virtual environment e instalar yt-dlp
-RUN python3 -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-RUN pip install --no-cache-dir yt-dlp
+# Instalar yt-dlp diretamente com pip (sem venv para facilitar acesso ao Node.js)
+RUN pip install --no-cache-dir --break-system-packages yt-dlp
 
-# Garantir que Node.js está disponível para yt-dlp
-# Criar symlink do node em locais padrão que yt-dlp procura
-RUN which node && ln -sf $(which node) /usr/local/bin/node || true
-RUN node --version && python3 -m yt_dlp --version
+# Garantir que Node.js está no PATH para yt-dlp
+RUN ln -sf /usr/local/bin/node /usr/bin/node || true
+
+# Verificar instalação e ver versões
+RUN yt-dlp --version && node --version
 
 WORKDIR /app
 
