@@ -14,8 +14,10 @@ RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --no-cache-dir yt-dlp
 
-# Node.js já está disponível na imagem node:20-alpine
-# Será usado como JS runtime para yt-dlp
+# Garantir que Node.js está disponível para yt-dlp
+# Criar symlink do node em locais padrão que yt-dlp procura
+RUN which node && ln -sf $(which node) /usr/local/bin/node || true
+RUN node --version && python3 -m yt_dlp --version
 
 WORKDIR /app
 

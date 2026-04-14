@@ -337,19 +337,21 @@ const runExportJob = async ({ jobId, userId, video, eventIds, beforeSeconds, aft
         // Argumentos para lidar com rate limiting e autenticação do YouTube
         '--socket-timeout',
         '30',
+        // Aumentar delays para evitar erro 429 (Too Many Requests)
         '--sleep-interval',
-        '5',
+        '15',
         '--sleep-requests',
-        '2',
+        '3',
         '--retries',
-        '5',
+        '7',
         '--retry-sleep',
-        '10',
+        '30',
+        // User agent realista
         '--user-agent',
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        // Tentar usar Node.js se disponível, caso contrário procedê sem ele
         '--extractor-args',
         'youtube:js_runtimes=node',
-        '--allow-unplayable-formats',
         youtubeUrl,
       ],
       {
