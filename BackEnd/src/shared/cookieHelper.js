@@ -12,9 +12,10 @@ const setTokenCookie = (res, token) => {
   res.cookie('token', token, {
     httpOnly: true, // ✅ Crítico: JS não consegue acessar
     secure: isProduction, // ✅ HTTPS obrigatório em produção
-    sameSite: 'strict', // ✅ Protege contra CSRF
+    sameSite: isProduction ? 'none' : 'strict', // ✅ 'none' em produção para cross-site; 'strict' em dev
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 dias (corresponde a JWT_EXPIRES_IN)
     path: '/', // Cookie disponível em todas as rotas
+    domain: isProduction ? undefined : 'localhost', // Cookie válido para todos os subdomínios em produção
   });
 };
 
@@ -22,11 +23,14 @@ const setTokenCookie = (res, token) => {
  * Limpa cookie de token
  */
 const clearTokenCookie = (res) => {
+  const isProduction = config.env === 'production';
+  
   res.clearCookie('token', {
     httpOnly: true,
-    secure: config.env === 'production',
-    sameSite: 'strict',
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'strict',
     path: '/',
+    domain: isProduction ? undefined : 'localhost',
   });
 };
 
