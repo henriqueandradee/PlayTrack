@@ -8,7 +8,9 @@ RUN apk add --no-cache \
     curl \
     ca-certificates
 
-# Instalar yt-dlp
+# Criar virtual environment e instalar yt-dlp
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --no-cache-dir yt-dlp
 
 WORKDIR /app
