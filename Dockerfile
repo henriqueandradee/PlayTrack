@@ -1,17 +1,9 @@
 FROM node:20-alpine
 
-# Instalar dependências do sistema
+# Instalar apenas dependências essenciais
 RUN apk add --no-cache \
-    python3 \
-    py3-pip \
     ffmpeg \
-    curl \
-    wget
-
-# Instalar yt-dlp via pip (e garantir que fica no PATH)
-RUN pip install --no-cache-dir --upgrade yt-dlp && \
-    which yt-dlp && \
-    yt-dlp --version
+    curl
 
 WORKDIR /app
 
