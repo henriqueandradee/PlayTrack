@@ -246,8 +246,12 @@ const downloadVideoViaFallback = async (videoUrl, outputPath, onProgress) => {
       fn: () => downloadViaPiped(videoId, outputPath, onProgress),
     },
     {
-      name: 'direct-youtube-api',
-      fn: () => downloadViaYoutubeNocookie(videoId, outputPath, onProgress),
+      name: 'jiosavid',
+      fn: () => downloadViaJiosavid(videoId, outputPath, onProgress),
+    },
+    {
+      name: 'jiosavid-mirror',
+      fn: () => downloadViaJiosavid2(videoId, outputPath, onProgress),
     },
   ];
 
@@ -389,40 +393,94 @@ const downloadViaPiped = (videoId, outputPath, onProgress) => {
   });
 };
 
-// Método 3: YouTube com origem falsificada
-const downloadViaYoutubeNocookie = (videoId, outputPath, onProgress) => {
+// Método 3: JioSavid (serviço alternativo)
+const downloadViaJiosavid = (videoId, outputPath, onProgress) => {
   return new Promise((resolve, reject) => {
     try {
-      const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
+      const jiosavid = `https://jiosavid.live/api/info?videoId=${videoId}`;
 
-      const options = {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'Referer': 'https://www.google.com/',
-        },
-        timeout: 20000,
-      };
-
-      https.get(youtubeUrl, options, (response) => {
-        let html = '';
+      https.get(jiosavid, { timeout: 15000 }, (response) => {
+        let data = '';
 
         response.on('data', (chunk) => {
-          html += chunk;
+          data += chunk;
         });
 
         response.on('end', () => {
           try {
-            // Procurar video info na página
-            const match = html.match(/"videoDetails":\{.*?"videoId":"([^"]+)"/);
-            if (!match || match[1] !== videoId) {
-              reject(new Error('YouTube nocookie: Video details não encontrados'));
+            if (response.statusCode !== 200) {
+              reject(new Error(`JioSavid retornou ${response.statusCode}`));
               return;
             }
 
-            reject(new Error('YouTube nocookie: Necessário parsing complexo de video, falha esperada'));
+            const info = JSON.parse(data);
+            
+            if (!info.downloaded_url || !Array.isArray(info.downloaded_url) || info.downloaded_url.length === 0) {
+              reject(new Error('Nenhum URL de download encontrado no JioSavid'));
+              return;
+            }
+
+            // Pegar primeira URL (melhor qualidade)
+            const downloadUrl = info.downloaded_url[0];
+            
+            if (!downloadUrl) {
+              reject(new Error('URL de download vazia'));
+              return;
+            }
+
+            downloadFromUrl(downloadUrl, outputPath, onProgress)
+              .then(resolve)
+              .catch(reject);
           } catch (parseErr) {
-            reject(new Error(`YouTube nocookie parse error: ${parseErr.message}`));
+            reject(new Error(`Erro ao processar resposta do JioSavid: ${parseErr.message}`));
+          }
+        });
+      }).on('error', reject);
+    } catch (err) {
+      reject(err);
+    }
+  });
+};
+
+// Método 4: JioSavid Mirror
+const downloadViaJiosavid2 = (videoId, outputPath, onProgress) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const jiosavid = `https://jiosaavid.com/api/info?videoId=${videoId}`;
+
+      https.get(jiosavid, { timeout: 15000 }, (response) => {
+        let data = '';
+
+        response.on('data', (chunk) => {
+          data += chunk;
+        });
+
+        response.on('end', () => {
+          try {
+            if (response.statusCode !== 200) {
+              reject(new Error(`JioSavid Mirror retornou ${response.statusCode}`));
+              return;
+            }
+
+            const info = JSON.parse(data);
+            
+            if (!info.downloaded_url || !Array.isArray(info.downloaded_url) || info.downloaded_url.length === 0) {
+              reject(new Error('Nenhum URL de download encontrado no JioSavid Mirror'));
+              return;
+            }
+
+            const downloadUrl = info.downloaded_url[0];
+            
+            if (!downloadUrl) {
+              reject(new Error('URL de download vazia'));
+              return;
+            }
+
+            downloadFromUrl(downloadUrl, outputPath, onProgress)
+              .then(resolve)
+              .catch(reject);
+          } catch (parseErr) {
+            reject(new Error(`Erro ao processar resposta do JioSavid Mirror: ${parseErr.message}`));
           }
         });
       }).on('error', reject);
