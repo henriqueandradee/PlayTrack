@@ -246,12 +246,12 @@ const downloadVideoViaFallback = async (videoUrl, outputPath, onProgress) => {
       fn: () => downloadViaPiped(videoId, outputPath, onProgress),
     },
     {
-      name: 'jiosavid',
-      fn: () => downloadViaJiosavid(videoId, outputPath, onProgress),
+      name: 'ytdlp-via-spawn',
+      fn: () => downloadViaYtDlpSpawn(videoUrl, outputPath, onProgress),
     },
     {
-      name: 'jiosavid-mirror',
-      fn: () => downloadViaJiosavid2(videoId, outputPath, onProgress),
+      name: 'jiosavid',
+      fn: () => downloadViaJiosavid(videoId, outputPath, onProgress),
     },
   ];
 
@@ -393,7 +393,65 @@ const downloadViaPiped = (videoId, outputPath, onProgress) => {
   });
 };
 
-// Método 3: JioSavid (serviço alternativo)
+// Método 3: yt-dlp direto (com proxy simulado via headers)
+const downloadViaYtDlpSpawn = (videoUrl, outputPath, onProgress) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const availableBinary = BINARY_CANDIDATES['yt-dlp'].find(candidate => {
+        if (!candidate) return false;
+        try {
+          return fsSync.existsSync(candidate);
+        } catch {
+          return false;
+        }
+      });
+
+      if (!availableBinary) {
+        reject(new Error('yt-dlp binary não encontrado'));
+        return;
+      }
+
+      // yt-dlp com flags agressivas contra bloqueio
+      const args = [
+        videoUrl,
+        '-f', 'best',
+        '-o', outputPath,
+        '--socket-timeout', '30',
+        '--sleep-interval', '2',
+        '--max-sleep-interval', '5',
+        '--retries', '5',
+        '--retry-sleep', '10',
+        '--geo-bypass',
+        '--no-check-certificate',
+        '--user-agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        '--referer', 'https://www.google.com/',
+      ];
+
+      let downloadedBytes = 0;
+      const startTime = Date.now();
+
+      runCommand(availableBinary, args, {
+        timeoutMs: YT_DLP_TIMEOUT_MS,
+        onStderrLine: (line) => {
+          console.log(`[yt-dlp] ${line}`);
+          
+          // Detectar progresso
+          const match = line.match(/(\d+\.\d+)%/);
+          if (match) {
+            const progress = parseFloat(match[1]);
+            onProgress?.(progress);
+          }
+        },
+      })
+        .then(resolve)
+        .catch(reject);
+    } catch (err) {
+      reject(err);
+    }
+  });
+};
+
+// Método 4: JioSavid (serviço alternativo)
 const downloadViaJiosavid = (videoId, outputPath, onProgress) => {
   return new Promise((resolve, reject) => {
     try {
@@ -433,54 +491,6 @@ const downloadViaJiosavid = (videoId, outputPath, onProgress) => {
               .catch(reject);
           } catch (parseErr) {
             reject(new Error(`Erro ao processar resposta do JioSavid: ${parseErr.message}`));
-          }
-        });
-      }).on('error', reject);
-    } catch (err) {
-      reject(err);
-    }
-  });
-};
-
-// Método 4: JioSavid Mirror
-const downloadViaJiosavid2 = (videoId, outputPath, onProgress) => {
-  return new Promise((resolve, reject) => {
-    try {
-      const jiosavid = `https://jiosaavid.com/api/info?videoId=${videoId}`;
-
-      https.get(jiosavid, { timeout: 15000 }, (response) => {
-        let data = '';
-
-        response.on('data', (chunk) => {
-          data += chunk;
-        });
-
-        response.on('end', () => {
-          try {
-            if (response.statusCode !== 200) {
-              reject(new Error(`JioSavid Mirror retornou ${response.statusCode}`));
-              return;
-            }
-
-            const info = JSON.parse(data);
-            
-            if (!info.downloaded_url || !Array.isArray(info.downloaded_url) || info.downloaded_url.length === 0) {
-              reject(new Error('Nenhum URL de download encontrado no JioSavid Mirror'));
-              return;
-            }
-
-            const downloadUrl = info.downloaded_url[0];
-            
-            if (!downloadUrl) {
-              reject(new Error('URL de download vazia'));
-              return;
-            }
-
-            downloadFromUrl(downloadUrl, outputPath, onProgress)
-              .then(resolve)
-              .catch(reject);
-          } catch (parseErr) {
-            reject(new Error(`Erro ao processar resposta do JioSavid Mirror: ${parseErr.message}`));
           }
         });
       }).on('error', reject);
