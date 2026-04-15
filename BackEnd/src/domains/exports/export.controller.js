@@ -244,7 +244,7 @@ const buildSinglePassFilterWithSubtitles = (ranges, includeAudio = true) => {
 
   for (let index = 0; index < ranges.length; index += 1) {
     const range = ranges[index];
-    videoParts.push(`[0:v]trim=start=${range.start}:end=${range.end},setpts=PTS-STARTPTS,scale=min(1920\\,iw):min(1080\\,ih):force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2[v${index}]`);
+    videoParts.push(`[0:v]trim=start=${range.start}:end=${range.end},setpts=PTS-STARTPTS,scale=min(1280\\,iw):min(720\\,ih):force_original_aspect_ratio=decrease[v${index}]`);
     if (includeAudio) {
       audioParts.push(`[0:a]atrim=start=${range.start}:end=${range.end},asetpts=PTS-STARTPTS[a${index}]`);
       concatInputs.push(`[v${index}][a${index}]`);
@@ -267,7 +267,7 @@ const buildSinglePassFilter = (ranges, includeAudio = true) => {
 
   for (let index = 0; index < ranges.length; index += 1) {
     const range = ranges[index];
-    videoParts.push(`[0:v]trim=start=${range.start}:end=${range.end},setpts=PTS-STARTPTS,scale=min(1920\\,iw):min(1080\\,ih):force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2[v${index}]`);
+    videoParts.push(`[0:v]trim=start=${range.start}:end=${range.end},setpts=PTS-STARTPTS,scale=min(1280\\,iw):min(720\\,ih):force_original_aspect_ratio=decrease[v${index}]`);
     if (includeAudio) {
       audioParts.push(`[0:a]atrim=start=${range.start}:end=${range.end},asetpts=PTS-STARTPTS[a${index}]`);
       concatInputs.push(`[v${index}][a${index}]`);
