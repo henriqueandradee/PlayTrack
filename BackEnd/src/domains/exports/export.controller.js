@@ -28,7 +28,7 @@ const BINARY_CANDIDATES = {
 
 const EXPORT_JOB_RETENTION_MS = 30 * 60 * 1000;
 const YT_DLP_TIMEOUT_MS = parseInt(process.env.EXPORT_YTDLP_TIMEOUT_MS || '900000', 10);
-const FFMPEG_TIMEOUT_MS = parseInt(process.env.EXPORT_FFMPEG_TIMEOUT_MS || '900000', 10);
+const FFMPEG_TIMEOUT_MS = parseInt(process.env.EXPORT_FFMPEG_TIMEOUT_MS || '3600000', 10); // 1 hora para vídeos longos
 const EXPORT_MAX_CONCURRENT_JOBS = Math.max(1, parseInt(process.env.EXPORT_MAX_CONCURRENT_JOBS || '1', 10));
 
 // Cache & User Agent rotation
@@ -234,17 +234,15 @@ const generateSubtitleFile = async (orderedEvents, ranges, tempDir) => {
 };
 
 const buildSinglePassFilterWithSubtitles = (ranges, includeAudio = true) => {
-  // Note: Subtitles são geradas em arquivo .srt separado
-  // FFmpeg filter de subtítulos (subtitles) causa problemas em Alpine Docker com libass/fontconfig
-  // Esta função constrói o filtro igual a buildSinglePassFilter (sem subtítulos)
-  // Os subtítulos estarão disponíveis em arquivo separado
+  // Simplificado: apenas trim + concat, sem scale
+  // Se precisa escalar, fazer em segundo passo
   const videoParts = [];
   const audioParts = [];
   const concatInputs = [];
 
   for (let index = 0; index < ranges.length; index += 1) {
     const range = ranges[index];
-    videoParts.push(`[0:v]trim=start=${range.start}:end=${range.end},setpts=PTS-STARTPTS,scale=min(1280\\,iw):min(720\\,ih):force_original_aspect_ratio=decrease[v${index}]`);
+    videoParts.push(`[0:v]trim=start=${range.start}:end=${range.end},setpts=PTS-STARTPTS[v${index}]`);
     if (includeAudio) {
       audioParts.push(`[0:a]atrim=start=${range.start}:end=${range.end},asetpts=PTS-STARTPTS[a${index}]`);
       concatInputs.push(`[v${index}][a${index}]`);
@@ -792,36 +790,46 @@ const runExportJob = async ({ jobId, userId, video, eventIds, beforeSeconds, aft
     });
 
     const runFfmpegSinglePass = async (includeAudio) => {
-      const filterComplex = buildSinglePassFilterWithSubtitles(ranges, includeAudio);
-      const commandArgs = [
-        '-y',
-        '-i',
-        inputPath,
-        '-filter_complex',
-        filterComplex,
-        '-map',
-        '[vout]',
-      ];
-
-      if (includeAudio) {
-        commandArgs.push('-map', '[aout]');
+      // Abordagem simplificada: usar -ss/-to em vez de filter_complex complexo
+      // Muito mais rápido e confiável
+      
+      let commandArgs;
+      
+      if (ranges.length === 1) {
+        // Para 1 clipe: comando simples e direto
+        const range = ranges[0];
+        commandArgs = [
+          '-y',
+          '-ss', String(range.start),
+          '-to', String(range.end),
+          '-i', inputPath,
+          '-c:v', 'libx264',
+          '-preset', 'ultrafast',
+          '-crf', '28',
+        ];
+        if (includeAudio) commandArgs.push('-c:a', 'aac');
+        commandArgs.push('-movflags', '+faststart', outputPath);
+      } else {
+        // Para múltiplos clipes: usar filtro simples (sem scale)
+        const filterComplex = buildSinglePassFilterWithSubtitles(ranges, includeAudio);
+        commandArgs = [
+          '-y',
+          '-i', inputPath,
+          '-filter_complex', filterComplex,
+          '-map', '[vout]',
+        ];
+        if (includeAudio) commandArgs.push('-map', '[aout]');
+        commandArgs.push(
+          '-c:v', 'libx264',
+          '-preset', 'ultrafast',
+          '-crf', '28',
+        );
+        if (includeAudio) commandArgs.push('-c:a', 'aac');
+        commandArgs.push('-movflags', '+faststart', outputPath);
       }
 
-      commandArgs.push(
-        '-c:v',
-        'libx264',
-        '-preset',
-        'ultrafast',
-        '-crf',
-        '28',
-      );
-
-      if (includeAudio) {
-        commandArgs.push('-c:a', 'aac');
-      }
-
-      commandArgs.push('-movflags', '+faststart', outputPath);
-
+      console.log(`[FFmpeg] Iniciando com ${ranges.length} clip(s)...`);
+      
       await runCommand(ffmpegBinary, commandArgs, {
         timeoutMs: FFMPEG_TIMEOUT_MS,
         onStderrLine: (line) => {
