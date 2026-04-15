@@ -225,7 +225,11 @@ const generateSubtitleFile = async (orderedEvents, ranges, tempDir) => {
   return srtPath;
 };
 
-const buildSinglePassFilterWithSubtitles = (ranges, srtPath, includeAudio = true) => {
+const buildSinglePassFilterWithSubtitles = (ranges, includeAudio = true) => {
+  // Note: Subtitles são geradas em arquivo .srt separado
+  // FFmpeg filter de subtítulos (subtitles) causa problemas em Alpine Docker com libass/fontconfig
+  // Esta função constrói o filtro igual a buildSinglePassFilter (sem subtítulos)
+  // Os subtítulos estarão disponíveis em arquivo separado
   const videoParts = [];
   const audioParts = [];
   const concatInputs = [];
@@ -242,14 +246,9 @@ const buildSinglePassFilterWithSubtitles = (ranges, srtPath, includeAudio = true
   }
 
   const concatLine = includeAudio
-    ? `${concatInputs.join('')}concat=n=${ranges.length}:v=1:a=1[vconcat][aout]`
-    : `${concatInputs.join('')}concat=n=${ranges.length}:v=1:a=0[vconcat]`;
-
-  const subtitleFilter = `[vconcat]subtitles='${srtPath.replace(/\\/g, '/')}':force_style='PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,Outline=1'[vout]`;
-  const filterSegments = includeAudio
-    ? [...videoParts, ...audioParts, concatLine, subtitleFilter]
-    : [...videoParts, concatLine, subtitleFilter];
-
+    ? `${concatInputs.join('')}concat=n=${ranges.length}:v=1:a=1[vout][aout]`
+    : `${concatInputs.join('')}concat=n=${ranges.length}:v=1:a=0[vout]`;
+  const filterSegments = [...videoParts, ...audioParts, concatLine];
   return filterSegments.join(';');
 };
 
@@ -769,19 +768,14 @@ const runExportJob = async ({ jobId, userId, video, eventIds, beforeSeconds, aft
       ), { code: 'VIDEO_DOWNLOAD_FAILED' });
     }
 
-    // Gerar arquivo de subtítulos
-    updateJob(jobId, {
-      stage: 'processing',
-      progress: 48,
-      message: 'Gerando subtítulos das anotações...',
-    });
-
-    let srtPath;
-    try {
-      srtPath = await generateSubtitleFile(orderedEvents, ranges, tempDir);
-    } catch (err) {
-      throw Object.assign(new Error(`Erro ao gerar subtítulos: ${err.message}`), { code: 'SUBTITLE_GENERATION_FAILED' });
-    }
+    // Nota: Subtítulos podem ser gerados em arquivo .srt separado se necessário
+    // Por enquanto, removido do FFmpeg para evitar problemas com libass/fontconfig em Alpine
+    // let srtPath;
+    // try {
+    //   srtPath = await generateSubtitleFile(orderedEvents, ranges, tempDir);
+    // } catch (err) {
+    //   throw Object.assign(new Error(`Erro ao gerar subtítulos: ${err.message}`), { code: 'SUBTITLE_GENERATION_FAILED' });
+    // }
 
     updateJob(jobId, {
       stage: 'processing',
@@ -790,7 +784,7 @@ const runExportJob = async ({ jobId, userId, video, eventIds, beforeSeconds, aft
     });
 
     const runFfmpegSinglePass = async (includeAudio) => {
-      const filterComplex = buildSinglePassFilterWithSubtitles(ranges, srtPath, includeAudio);
+      const filterComplex = buildSinglePassFilterWithSubtitles(ranges, includeAudio);
       const commandArgs = [
         '-y',
         '-i',
