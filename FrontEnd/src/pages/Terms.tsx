@@ -136,7 +136,7 @@ const Terms = () => {
                   <li>Vídeos ilimitados</li>
                   <li>Análise tática avançada</li>
                   <li>Suporte prioritário</li>
-                  <li>Exportação de relatórios</li>
+                  <li>Histórico de estatísticas</li>
                 </ul>
               </div>
 

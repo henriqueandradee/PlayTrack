@@ -10,7 +10,6 @@ const features = [
   { name: 'Registros, anotações e estatísticas', free: 'Sim', pro: 'Sim' },
   { name: 'Player integrado ao YouTube', free: 'Sim', pro: 'Sim' },
   { name: 'Armazenamento de vídeos no PlayTrack', free: 'Não', pro: 'Não' },
-  { name: 'Exportação de vídeo com registros', free: 'Não', pro: 'Sim' },
   { name: 'Histórico de estatísticas', free: 'Não', pro: 'Sim' },
   { name: 'Análise organizada por jogo', free: 'Sim', pro: 'Sim' },
 ];

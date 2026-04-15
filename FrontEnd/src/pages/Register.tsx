@@ -77,7 +77,7 @@ const Register = () => {
             PlayTrack é uma plataforma de análise tática e estatística de basquete para atletas e treinadores. Com um player integrado ao YouTube, você assiste à própria partida e registra jogadas, estatísticas e anotações no momento exato do vídeo.
           </p>
           <p className="mt-4 text-sm text-text-secondary max-w-md">
-            Os vídeos ficam no YouTube, e o PlayTrack armazena apenas as análises. O plano gratuito permite analisar 3 jogos; no Pro, você libera vídeos e registros ilimitados, exportação com registros no vídeo e histórico de estatísticas.
+            Os vídeos ficam no YouTube, e o PlayTrack armazena apenas as análises. O plano gratuito permite analisar 3 jogos; no Pro, você libera vídeos e registros ilimitados, além de histórico de estatísticas.
           </p>
         </div>
       </div>
