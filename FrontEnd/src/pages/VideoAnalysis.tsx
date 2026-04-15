@@ -347,6 +347,8 @@ const VideoAnalysis = () => {
     { key: 'info', label: 'Informações', shortLabel: 'Info', icon: Info },
   ];
 
+  const ytId = video.source.videoId;
+
   return (
     <div className="px-4 pt-4 pb-2 max-w-[1600px] mx-auto animate-fade-in flex flex-col min-h-screen lg:h-[100dvh] lg:px-6 lg:pt-6 lg:pb-3">
       <div className="flex items-center justify-between mb-4 shrink-0">
