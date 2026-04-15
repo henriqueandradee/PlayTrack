@@ -5,10 +5,13 @@ RUN apk add --no-cache \
     python3 \
     py3-pip \
     ffmpeg \
-    curl
+    curl \
+    wget
 
-# Verificar e atualizar yt-dlp para suportar YouTube moderno
-RUN pip install --no-cache-dir --upgrade yt-dlp
+# Instalar yt-dlp via pip (e garantir que fica no PATH)
+RUN pip install --no-cache-dir --upgrade yt-dlp && \
+    which yt-dlp && \
+    yt-dlp --version
 
 WORKDIR /app
 

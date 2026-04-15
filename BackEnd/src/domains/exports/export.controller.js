@@ -127,6 +127,14 @@ const checkCommandAvailable = async (command) => {
 
   const versionArgs = command === 'ffmpeg' ? ['-version'] : ['--version'];
 
+  // Primeiro, tentar encontrar via 'which'
+  try {
+    const whichResult = await runCommand('which', [command]);
+    if (whichResult) return command; // 'which' encontrou, então o comando está no PATH
+  } catch {
+    // 'which' falhou, continuar tentando candidates
+  }
+
   for (const candidate of candidates) {
     if (candidate.includes('/') && !fsSync.existsSync(candidate)) {
       continue;
@@ -140,7 +148,7 @@ const checkCommandAvailable = async (command) => {
     }
   }
 
-  throw new Error(`Missing binary for ${command}`);
+  throw new Error(`Missing binary for ${command}. Instale yt-dlp (pip install yt-dlp) e ffmpeg.`);
 };
 
 const toTimestamp = (totalSeconds) => {
