@@ -504,7 +504,7 @@ const VideoGenerate = () => {
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-success/90 text-white text-sm font-medium hover:opacity-90 transition-all"
             >
               <Download className="h-4 w-4" />
-              Baixar arquivo
+              Baixar vídeo
             </a>
           )}
 

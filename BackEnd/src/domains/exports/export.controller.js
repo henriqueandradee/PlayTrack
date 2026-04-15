@@ -27,9 +27,29 @@ const BINARY_CANDIDATES = {
 };
 
 const EXPORT_JOB_RETENTION_MS = 30 * 60 * 1000;
-const YT_DLP_TIMEOUT_MS = parseInt(process.env.EXPORT_YTDLP_TIMEOUT_MS || '600000', 10);
+const YT_DLP_TIMEOUT_MS = parseInt(process.env.EXPORT_YTDLP_TIMEOUT_MS || '900000', 10);
 const FFMPEG_TIMEOUT_MS = parseInt(process.env.EXPORT_FFMPEG_TIMEOUT_MS || '900000', 10);
 const EXPORT_MAX_CONCURRENT_JOBS = Math.max(1, parseInt(process.env.EXPORT_MAX_CONCURRENT_JOBS || '1', 10));
+
+// Cache & User Agent rotation
+const VIDEO_CACHE_DIR = path.join(os.tmpdir(), 'playtrack-video-cache');
+const USER_AGENTS = [
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/121.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/121.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/121.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
+];
+
+const getRandomUserAgent = () => USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+
+const ensureCacheDir = async () => {
+  try {
+    await fs.mkdir(VIDEO_CACHE_DIR, { recursive: true });
+  } catch {
+    // ignore
+  }
+};
+
 const exportJobs = new Map();
 const exportQueue = [];
 let runningExportWorkers = 0;
@@ -647,17 +667,30 @@ const runExportJob = async ({ jobId, userId, video, eventIds, beforeSeconds, aft
       '-o',
       inputPath,
       '--socket-timeout',
-      '30',
-      '--sleep-interval',
-      '30',
-      '--sleep-requests',
-      '5',
-      '--retries',
-      '10',
-      '--retry-sleep',
       '60',
+      '--read-timeout',
+      '60',
+      '--sleep-interval',
+      '5',
+      '--sleep-requests',
+      '2',
+      '--max-sleep-interval',
+      '10',
+      '--retries',
+      'infinite',
+      '--retry-sleep',
+      '5',
+      '--fragment-retries',
+      'infinite',
+      '--skip-unavailable-fragments',
+      '--concurrent-fragments',
+      '4',
       '--user-agent',
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      getRandomUserAgent(),
+      '--referer',
+      'https://www.youtube.com',
+      '-H',
+      'Accept-Language: en-US,en;q=0.9',
       '--geo-bypass',
       '--no-check-certificate',
       youtubeUrl,

@@ -49,4 +49,15 @@ router.get(
   exportController.downloadVideoExportJob
 );
 
+// GET /export/jobs — listar todos os jobs do usuário (para cancelar travados)
+router.get('/jobs', exportController.listUserJobs);
+
+// DELETE /export/jobs/:jobId — cancelar um job específico
+router.delete(
+  '/jobs/:jobId',
+  [param('jobId').isUUID().withMessage('jobId must be a valid UUID')],
+  validate,
+  exportController.cancelJob
+);
+
 module.exports = router;
