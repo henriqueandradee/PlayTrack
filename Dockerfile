@@ -7,8 +7,9 @@ RUN apk add --no-cache \
     ffmpeg \
     curl
 
-# Instalar yt-dlp
-RUN pip install --no-cache-dir yt-dlp
+# Node.js já está incluído na imagem node:20-alpine
+# Verificar e atualizar yt-dlp para suportar YouTube moderno
+RUN pip install --no-cache-dir --upgrade yt-dlp
 
 WORKDIR /app
 
