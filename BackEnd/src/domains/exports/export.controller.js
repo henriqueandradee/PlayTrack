@@ -335,10 +335,6 @@ const downloadVideoViaFallback = async (videoUrl, outputPath, onProgress) => {
       name: 'ytdlp-via-spawn',
       fn: () => downloadViaYtDlpSpawn(videoUrl, outputPath, onProgress),
     },
-    {
-      name: 'jiosavid',
-      fn: () => downloadViaJiosavid(videoId, outputPath, onProgress),
-    },
   ];
 
   let lastError = null;
@@ -531,55 +527,6 @@ const downloadViaYtDlpSpawn = (videoUrl, outputPath, onProgress) => {
       })
         .then(resolve)
         .catch(reject);
-    } catch (err) {
-      reject(err);
-    }
-  });
-};
-
-// Método 4: JioSavid (serviço alternativo)
-const downloadViaJiosavid = (videoId, outputPath, onProgress) => {
-  return new Promise((resolve, reject) => {
-    try {
-      const jiosavid = `https://jiosavid.live/api/info?videoId=${videoId}`;
-
-      https.get(jiosavid, { timeout: 15000 }, (response) => {
-        let data = '';
-
-        response.on('data', (chunk) => {
-          data += chunk;
-        });
-
-        response.on('end', () => {
-          try {
-            if (response.statusCode !== 200) {
-              reject(new Error(`JioSavid retornou ${response.statusCode}`));
-              return;
-            }
-
-            const info = JSON.parse(data);
-            
-            if (!info.downloaded_url || !Array.isArray(info.downloaded_url) || info.downloaded_url.length === 0) {
-              reject(new Error('Nenhum URL de download encontrado no JioSavid'));
-              return;
-            }
-
-            // Pegar primeira URL (melhor qualidade)
-            const downloadUrl = info.downloaded_url[0];
-            
-            if (!downloadUrl) {
-              reject(new Error('URL de download vazia'));
-              return;
-            }
-
-            downloadFromUrl(downloadUrl, outputPath, onProgress)
-              .then(resolve)
-              .catch(reject);
-          } catch (parseErr) {
-            reject(new Error(`Erro ao processar resposta do JioSavid: ${parseErr.message}`));
-          }
-        });
-      }).on('error', reject);
     } catch (err) {
       reject(err);
     }
