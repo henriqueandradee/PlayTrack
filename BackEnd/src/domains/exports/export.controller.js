@@ -687,8 +687,6 @@ const runExportJob = async ({ jobId, userId, video, eventIds, beforeSeconds, aft
       getRandomUserAgent(),
       '--referer',
       'https://www.youtube.com',
-      '-H',
-      'Accept-Language: en-US,en;q=0.9',
       '--geo-bypass',
       '--no-check-certificate',
       youtubeUrl,
