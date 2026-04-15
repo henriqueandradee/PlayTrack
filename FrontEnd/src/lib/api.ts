@@ -32,8 +32,14 @@ api.interceptors.response.use(
       // Limpa token e redireciona para login
       localStorage.removeItem('token');
       const currentUrl = window.location.pathname;
+      
+      // Força novo hydrate para atualizar estado de autenticação
+      const { useAuthStore } = require('@/stores/authStore');
+      useAuthStore.getState().logout();
+      
       if (currentUrl !== '/login' && currentUrl !== '/register') {
-        window.location.href = '/login';
+        // Usa window.location para fazer reload completo
+        window.location.href = '/login?session_expired=true';
       }
     }
     return Promise.reject(error);

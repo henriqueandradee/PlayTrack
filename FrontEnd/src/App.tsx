@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -27,15 +27,46 @@ const queryClient = new QueryClient();
 
 const IndexRedirect = () => {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const hydrated = useAuthStore((s) => s.hydrated);
+  
+  // Aguarda hydrate antes de redirecionar
+  if (!hydrated) return null;
+  
   return <Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />;
 };
 
 const App = () => {
   const hydrate = useAuthStore((s) => s.hydrate);
+  const hydrated = useAuthStore((s) => s.hydrated);
 
   useEffect(() => {
     hydrate();
-  }, []); // Array vazia = executa apenas uma vez no mount
+  }, [hydrate]);
+
+  // Verifica token novamente quando usuário volta da guia inativa
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // Usuário voltou para a aba - verifica se still autenticado
+        hydrate();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [hydrate]);
+
+  // Mostra tela em branco enquanto carregando
+  if (!hydrated) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-background">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
