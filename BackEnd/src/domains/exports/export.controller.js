@@ -245,7 +245,7 @@ const buildSinglePassFilterWithSubtitles = (ranges, srtPath, includeAudio = true
     ? `${concatInputs.join('')}concat=n=${ranges.length}:v=1:a=1[vconcat][aout]`
     : `${concatInputs.join('')}concat=n=${ranges.length}:v=1:a=0[vconcat]`;
 
-  const subtitleFilter = `[vconcat]subtitles='${srtPath.replace(/\\/g, '/')}':force_style='Fontsize=16,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,Outline=2'[vout]`;
+  const subtitleFilter = `[vconcat]subtitles='${srtPath.replace(/\\/g, '/')}':force_style='PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,Outline=1'[vout]`;
   const filterSegments = includeAudio
     ? [...videoParts, ...audioParts, concatLine, subtitleFilter]
     : [...videoParts, concatLine, subtitleFilter];
