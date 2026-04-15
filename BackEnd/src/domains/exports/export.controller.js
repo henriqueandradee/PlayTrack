@@ -668,8 +668,6 @@ const runExportJob = async ({ jobId, userId, video, eventIds, beforeSeconds, aft
       inputPath,
       '--socket-timeout',
       '60',
-      '--read-timeout',
-      '60',
       '--sleep-interval',
       '5',
       '--sleep-requests',
