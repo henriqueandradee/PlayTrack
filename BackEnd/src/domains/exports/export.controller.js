@@ -187,6 +187,72 @@ const toSecondsFromTimeString = (value) => {
   return hours * 3600 + minutes * 60 + seconds;
 };
 
+const formatSrtTimestamp = (seconds) => {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+  const ms = Math.floor((seconds % 1) * 1000);
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')},${String(ms).padStart(3, '0')}`;
+};
+
+const generateSubtitleFile = async (orderedEvents, ranges, tempDir) => {
+  const srtPath = path.join(tempDir, 'subtitles.srt');
+  const srtLines = [];
+  let currentClipIndex = 0;
+  let currentAbsoluteTime = 0;
+
+  for (const event of orderedEvents) {
+    const clipIndex = ranges.findIndex((r) => event.videoTimestampSeconds >= r.start && event.videoTimestampSeconds < r.end);
+    if (clipIndex === -1) continue;
+
+    // Se mudou de clip, recalcula tempo absoluto
+    if (clipIndex !== currentClipIndex) {
+      currentAbsoluteTime = ranges.slice(0, clipIndex).reduce((sum, r) => sum + (r.end - r.start), 0);
+      currentClipIndex = clipIndex;
+    }
+
+    const relativeTime = event.videoTimestampSeconds - ranges[clipIndex].start;
+    const absoluteTime = currentAbsoluteTime + relativeTime;
+    const endTime = Math.min(absoluteTime + 5, ranges.reduce((sum, r) => sum + (r.end - r.start), 0));
+
+    srtLines.push(String(srtLines.length / 3 + 1)); // Numero do subtitle
+    srtLines.push(`${formatSrtTimestamp(absoluteTime)} --> ${formatSrtTimestamp(endTime)}`);
+    srtLines.push(event.name || event.tag || 'Annotation');
+    srtLines.push('');
+  }
+
+  await fs.writeFile(srtPath, srtLines.join('\n'), 'utf-8');
+  return srtPath;
+};
+
+const buildSinglePassFilterWithSubtitles = (ranges, srtPath, includeAudio = true) => {
+  const videoParts = [];
+  const audioParts = [];
+  const concatInputs = [];
+
+  for (let index = 0; index < ranges.length; index += 1) {
+    const range = ranges[index];
+    videoParts.push(`[0:v]trim=start=${range.start}:end=${range.end},setpts=PTS-STARTPTS[v${index}]`);
+    if (includeAudio) {
+      audioParts.push(`[0:a]atrim=start=${range.start}:end=${range.end},asetpts=PTS-STARTPTS[a${index}]`);
+      concatInputs.push(`[v${index}][a${index}]`);
+    } else {
+      concatInputs.push(`[v${index}]`);
+    }
+  }
+
+  const concatLine = includeAudio
+    ? `${concatInputs.join('')}concat=n=${ranges.length}:v=1:a=1[vconcat][aout]`
+    : `${concatInputs.join('')}concat=n=${ranges.length}:v=1:a=0[vconcat]`;
+
+  const subtitleFilter = `[vconcat]subtitles='${srtPath.replace(/\\/g, '/')}':force_style='Fontsize=16,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,Outline=2'[vout]`;
+  const filterSegments = includeAudio
+    ? [...videoParts, ...audioParts, concatLine, subtitleFilter]
+    : [...videoParts, concatLine, subtitleFilter];
+
+  return filterSegments.join(';');
+};
+
 const buildSinglePassFilter = (ranges, includeAudio = true) => {
   const videoParts = [];
   const audioParts = [];
@@ -756,6 +822,20 @@ const runExportJob = async ({ jobId, userId, video, eventIds, beforeSeconds, aft
       ), { code: 'VIDEO_DOWNLOAD_FAILED' });
     }
 
+    // Gerar arquivo de subtítulos
+    updateJob(jobId, {
+      stage: 'processing',
+      progress: 48,
+      message: 'Gerando subtítulos das anotações...',
+    });
+
+    let srtPath;
+    try {
+      srtPath = await generateSubtitleFile(orderedEvents, ranges, tempDir);
+    } catch (err) {
+      throw Object.assign(new Error(`Erro ao gerar subtítulos: ${err.message}`), { code: 'SUBTITLE_GENERATION_FAILED' });
+    }
+
     updateJob(jobId, {
       stage: 'processing',
       progress: 50,
@@ -763,7 +843,7 @@ const runExportJob = async ({ jobId, userId, video, eventIds, beforeSeconds, aft
     });
 
     const runFfmpegSinglePass = async (includeAudio) => {
-      const filterComplex = buildSinglePassFilter(ranges, includeAudio);
+      const filterComplex = buildSinglePassFilterWithSubtitles(ranges, srtPath, includeAudio);
       const commandArgs = [
         '-y',
         '-i',
@@ -825,6 +905,18 @@ const runExportJob = async ({ jobId, userId, video, eventIds, beforeSeconds, aft
         message: 'Video sem audio detectado, tentando exportacao sem faixa de audio...',
       });
       await runFfmpegSinglePass(false);
+    }
+
+    // Validar que o arquivo foi criado e tem tamanho válido
+    let stats;
+    try {
+      stats = await fs.stat(outputPath);
+    } catch (err) {
+      throw Object.assign(new Error(`Arquivo de video nao foi criado: ${err.message}`), { code: 'OUTPUT_FILE_MISSING' });
+    }
+
+    if (stats.size === 0) {
+      throw Object.assign(new Error('Arquivo de video gerado estava vazio. FFmpeg pode ter falhado silenciosamente.'), { code: 'OUTPUT_FILE_EMPTY' });
     }
 
     const downloadName = sanitizeFileName(outputFileName || `${video.title}-highlights`);
