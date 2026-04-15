@@ -26,12 +26,6 @@ COPY BackEnd/logs ./logs
 # Criar diretório de logs se não existir
 RUN mkdir -p ./logs
 
-# Configuração de Proxy para vídeos com restrição geográfica
-# Para usar proxy, passar via variável de ambiente:
-# docker run -e YOUTUBE_PROXY=socks5://127.0.0.1:1080 playtrack
-# Formatos suportados: http://, https://, socks4://, socks5://
-ENV YOUTUBE_PROXY=""
-
 # Expor porta
 EXPOSE 3000
 

@@ -692,11 +692,6 @@ const runExportJob = async ({ jobId, userId, video, eventIds, beforeSeconds, aft
       youtubeUrl,
     ];
 
-    // Adicionar proxy se configurado
-    if (process.env.YOUTUBE_PROXY) {
-      ytDlpArgs.unshift('--proxy', process.env.YOUTUBE_PROXY);
-    }
-
     // Adicionar cookies se disponíveis
     if (process.env.YOUTUBE_COOKIES_FILE && fsSync.existsSync(process.env.YOUTUBE_COOKIES_FILE)) {
       ytDlpArgs.splice(ytDlpArgs.length - 1, 0, '--cookies', process.env.YOUTUBE_COOKIES_FILE);
