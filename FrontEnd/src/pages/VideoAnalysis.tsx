@@ -347,30 +347,11 @@ const VideoAnalysis = () => {
     { key: 'info', label: 'Informações', shortLabel: 'Info', icon: Info },
   ];
 
-  const ytId = video.source.videoId;
-  const canGenerateVideo = video.source.type === 'youtube' && !!video.source.videoId;
-  const canAccessVideoGeneration = canGenerateVideo && user?.plan === 'pro';
-
   return (
     <div className="px-4 pt-4 pb-2 max-w-[1600px] mx-auto animate-fade-in flex flex-col min-h-screen lg:h-[100dvh] lg:px-6 lg:pt-6 lg:pb-3">
       <div className="flex items-center justify-between mb-4 shrink-0">
         <h1 className="text-xl font-bold text-foreground truncate pr-4">{video.title}</h1>
         <div className="flex gap-2">
-          {canGenerateVideo && (
-            <button
-              onClick={() => {
-                if (canAccessVideoGeneration) {
-                  navigate(`/videos/${video._id}/generate`);
-                  return;
-                }
-
-                setUpgradeOpen(true);
-              }}
-              className="flex items-center justify-center min-w-[140px] gap-2 text-sm px-4 py-1.5 rounded-lg font-medium border border-border text-foreground hover:border-primary/50 hover:bg-elevated transition-colors"
-            >
-              {canAccessVideoGeneration ? 'Gerar vídeo' : 'Gerar vídeo (Pro)'}
-            </button>
-          )}
           <button
             onClick={handleFinalizeVideo}
             className={`flex items-center justify-center min-w-[140px] gap-2 text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${

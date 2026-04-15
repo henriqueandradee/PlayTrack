@@ -15,7 +15,6 @@ const videoRoutes         = require('./domains/videos/video.routes');
 const analysisRoutes      = require('./domains/analysis/analysis.routes');
 const statsRoutes         = require('./domains/stats/stats.routes');
 const subscriptionRoutes  = require('./domains/subscriptions/subscription.routes');
-const exportRoutes        = require('./domains/exports/export.routes');
 const gdprRoutes         = require('./domains/gdpr/gdpr.routes');
 const complianceRoutes    = require('./domains/compliance/compliance.routes');
 
@@ -99,7 +98,6 @@ app.use('/videos',        videoRoutes);
 app.use('/analysis',      analysisRoutes);
 app.use('/stats',         statsRoutes);
 app.use('/subscriptions', subscriptionRoutes);
-app.use('/export',        exportRoutes);
 
 // ✅ LGPD Compliance Routes (Art. 17, 18, 20)
 app.use('/gdpr',          gdprRoutes);

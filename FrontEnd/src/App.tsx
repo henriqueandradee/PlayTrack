@@ -11,7 +11,6 @@ import Register from '@/pages/Register';
 import Dashboard from '@/pages/Dashboard';
 import Videos from '@/pages/Videos';
 import VideoAnalysis from '@/pages/VideoAnalysis';
-import VideoGenerate from '@/pages/VideoGenerate';
 import Stats from '@/pages/Stats';
 import Settings from '@/pages/Settings';
 import More from '@/pages/More';
@@ -86,7 +85,6 @@ const App = () => {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/videos" element={<Videos />} />
               <Route path="/videos/:videoId" element={<VideoAnalysis />} />
-              <Route path="/videos/:videoId/generate" element={<VideoGenerate />} />
               <Route path="/stats" element={<Stats />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/mais" element={<More />} />
