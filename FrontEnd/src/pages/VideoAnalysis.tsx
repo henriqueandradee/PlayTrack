@@ -1,10 +1,11 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Trash2, Clock, FileText, BarChart3, Info, MapPin, Play, Pause } from 'lucide-react';
+import { Trash2, Clock, FileText, BarChart3, Info, MapPin, Play, Pause, Share2 } from 'lucide-react';
 import api, { getErrorMessage } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { usePlayerStore } from '@/stores/playerStore';
 import { YouTubePlayer } from '@/components/YouTubePlayer';
+import { ShareAnalysisModal } from '@/components/ShareAnalysisModal';
 import { UpgradeModal } from '@/components/UpgradeModal';
 import { formatTime, formatPct } from '@/lib/helpers';
 import { toast } from 'sonner';
@@ -61,6 +62,7 @@ const VideoAnalysis = () => {
   const [stats, setStats] = useState<VideoStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
   const [note, setNote] = useState('');
   const [activeTab, setActiveTab] = useState<TabKey>('timeline');
   const [filterCat, setFilterCat] = useState<string>('all');
@@ -354,6 +356,16 @@ const VideoAnalysis = () => {
       <div className="flex items-center justify-between mb-4 shrink-0">
         <h1 className="text-xl font-bold text-foreground truncate pr-4">{video.title}</h1>
         <div className="flex gap-2">
+          {!isLiveMode && video.source.type === 'youtube' && (
+            <button
+              onClick={() => setShareModalOpen(true)}
+              className="flex items-center justify-center gap-2 text-sm px-4 py-1.5 rounded-lg font-medium transition-colors bg-elevated border border-border text-text-secondary hover:text-foreground hover:border-primary/50"
+              title="Compartilhar análise"
+            >
+              <Share2 size={16} />
+              <span className="hidden sm:inline">Compartilhar análise</span>
+            </button>
+          )}
           <button
             onClick={handleFinalizeVideo}
             className={`flex items-center justify-center min-w-[140px] gap-2 text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${
@@ -833,6 +845,12 @@ const VideoAnalysis = () => {
           )}
         </div>
       </div>
+
+      <ShareAnalysisModal
+        videoId={videoId || ''}
+        isOpen={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+      />
 
       <UpgradeModal
         open={upgradeOpen}

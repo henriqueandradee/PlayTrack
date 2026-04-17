@@ -11,6 +11,7 @@ import Register from '@/pages/Register';
 import Dashboard from '@/pages/Dashboard';
 import Videos from '@/pages/Videos';
 import VideoAnalysis from '@/pages/VideoAnalysis';
+import SharedAnalysis from '@/pages/SharedAnalysis';
 import Stats from '@/pages/Stats';
 import Settings from '@/pages/Settings';
 import More from '@/pages/More';
@@ -81,6 +82,7 @@ const App = () => {
             <Route path="/terms" element={<Terms />} />
             <Route path="/cookies" element={<Cookies />} />
             <Route path="/dmca" element={<DMCA />} />
+            <Route path="/shared/:token" element={<SharedAnalysis />} />
             <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/videos" element={<Videos />} />

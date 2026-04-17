@@ -4,14 +4,22 @@ const router = express.Router();
 const videoController = require('./video.controller');
 const validate = require('../../middlewares/validate');
 const { protect } = require('../../middlewares/authMiddleware');
+const { optionalShareToken } = require('../../middlewares/shareTokenMiddleware');
 const { planGuard } = require('../../middlewares/planMiddleware');
 
-// All routes require auth
-router.use(protect);
+// GET /videos/:videoId — permite acesso público com token
+router.get(
+  '/:videoId',
+  optionalShareToken,
+  [param('videoId').isMongoId().withMessage('Invalid videoId')],
+  validate,
+  videoController.getVideo
+);
 
-// GET /videos
+// GET /videos — listar vídeos do usuário (requer autenticação)
 router.get(
   '/',
+  protect,
   [
     query('page').optional().isInt({ min: 1 }),
     query('limit').optional().isInt({ min: 1, max: 100 }),
@@ -21,9 +29,10 @@ router.get(
   videoController.getVideos
 );
 
-// POST /videos — freemium guard applied before controller
+// POST /videos — criar novo vídeo (requer autenticação)
 router.post(
   '/',
+  protect,
   planGuard('canCreateVideo'),
   [
     body('title').notEmpty().trim().withMessage('Title is required'),
@@ -47,17 +56,10 @@ router.post(
   videoController.createVideo
 );
 
-// GET /videos/:videoId
-router.get(
-  '/:videoId',
-  [param('videoId').isMongoId().withMessage('Invalid videoId')],
-  validate,
-  videoController.getVideo
-);
-
-// PATCH /videos/:videoId
+// PATCH /videos/:videoId — atualizar vídeo (requer autenticação)
 router.patch(
   '/:videoId',
+  protect,
   [
     param('videoId').isMongoId().withMessage('Invalid videoId'),
     body('title').optional().notEmpty().trim(),
@@ -70,11 +72,13 @@ router.patch(
   videoController.updateVideo
 );
 
-// DELETE /videos/:videoId
+// DELETE /videos/:videoId — deletar vídeo (requer autenticação)
 router.delete(
   '/:videoId',
+  protect,
   [param('videoId').isMongoId().withMessage('Invalid videoId')],
   validate,
   videoController.deleteVideo
 );
+
 module.exports = router;

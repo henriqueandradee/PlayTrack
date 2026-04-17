@@ -4,13 +4,13 @@ const router = express.Router();
 const analysisController = require('./analysis.controller');
 const validate = require('../../middlewares/validate');
 const { protect } = require('../../middlewares/authMiddleware');
+const { optionalShareToken } = require('../../middlewares/shareTokenMiddleware');
 const { planGuard } = require('../../middlewares/planMiddleware');
 
-router.use(protect);
-
-// GET /analysis/events?videoId=xxx&from=0&to=60&category=stat
+// GET /analysis/events — permite acesso público com token de compartilhamento
 router.get(
   '/events',
+  optionalShareToken,
   [
     query('videoId').notEmpty().isMongoId().withMessage('videoId must be a valid id'),
     query('from').optional().isFloat({ min: 0 }),
@@ -21,9 +21,10 @@ router.get(
   analysisController.getVideoEvents
 );
 
-// POST /analysis/events — freemium guard checks event limit per video
+// POST /analysis/events — criar eventos (requer autenticação)
 router.post(
   '/events',
+  protect,
   planGuard('canCreateEvent'),
   [
     body('videoId').notEmpty().isMongoId().withMessage('videoId must be a valid id'),
@@ -41,9 +42,10 @@ router.post(
   analysisController.createEvent
 );
 
-// DELETE /analysis/events/:eventId
+// DELETE /analysis/events/:eventId — deletar eventos (requer autenticação)
 router.delete(
   '/events/:eventId',
+  protect,
   [param('eventId').isMongoId().withMessage('eventId must be a valid id')],
   validate,
   analysisController.deleteEvent

@@ -119,10 +119,12 @@ exports.getVideoEvents = async (req, res, next) => {
   try {
     const { videoId, from, to, category } = req.query;
 
-    // Verify video ownership
+    // Verify video ownership (ou acesso público via token)
     const video = await Video.findById(videoId);
     if (!video) return notFound(res, 'Video');
-    if (video.userId.toString() !== req.user._id.toString()) {
+    
+    // Se não for acesso público compartilhado, verifica ownership
+    if (!req.isPublicShare && video.userId.toString() !== req.user._id.toString()) {
       return forbidden(res);
     }
 

@@ -204,7 +204,9 @@ exports.getVideo = async (req, res, next) => {
   try {
     const video = await Video.findById(req.params.videoId);
     if (!video) return notFound(res, 'Video');
-    if (video.userId.toString() !== req.user._id.toString()) {
+    
+    // Se não for acesso público compartilhado, verifica ownership
+    if (!req.isPublicShare && video.userId.toString() !== req.user._id.toString()) {
       return forbidden(res);
     }
 

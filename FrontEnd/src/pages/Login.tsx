@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import api, { getErrorMessage } from '@/lib/api';
@@ -11,6 +11,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const login = useAuthStore((s) => s.login);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -21,7 +22,8 @@ const Login = () => {
       const res = await api.post('/auth/login', { email, password });
       // ✅ Token agora é retornado na resposta, passamos para authStore
       login(res.data.data.user, res.data.data.token);
-      navigate('/dashboard');
+      const returnTo = searchParams.get('returnTo');
+      navigate(returnTo || '/dashboard');
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
