@@ -37,7 +37,7 @@ router.post(
   [
     body('title').notEmpty().trim().withMessage('Title is required'),
     body('context.analysisType').isIn(['estatística', 'tática', 'ambos']),
-    body('context.scope').isIn(['eu', 'outro atleta', 'multi atleta', 'time']),
+    body('context.scope').isIn(['meu_time', 'outro_time', 'eu', 'outro atleta', 'multi atleta', 'time']),
     body('context.gameType').isIn(['jogo', 'estudo']),
     body('context.analysisMode').isIn(['presencial', 'YouTube']),
     body('sourceType')

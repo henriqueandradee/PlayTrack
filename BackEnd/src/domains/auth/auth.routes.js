@@ -83,4 +83,10 @@ router.post(
   authController.undeleteAccount
 );
 
+// GET /auth/roster — persistent team athletes
+router.get('/roster', protect, authController.getRoster);
+
+// PUT /auth/roster — update team athletes
+router.put('/roster', protect, authController.updateRoster);
+
 module.exports = router;

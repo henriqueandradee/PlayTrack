@@ -313,3 +313,56 @@ exports.undeleteAccount = async (req, res, next) => {
     next(err);
   }
 };
+
+/**
+ * GET /auth/roster
+ * Returns the user's persistent team roster.
+ */
+exports.getRoster = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id).select('teamRoster');
+    return res.json({
+      success: true,
+      data: user.teamRoster || [],
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * PUT /auth/roster
+ * Replaces the user's team roster with the provided list.
+ */
+exports.updateRoster = async (req, res, next) => {
+  try {
+    const { roster } = req.body;
+    if (!Array.isArray(roster)) {
+      return res.status(422).json({
+        success: false,
+        message: 'roster must be an array of { id, name }',
+      });
+    }
+
+    // Validate and sanitize
+    const sanitized = roster
+      .filter((a) => a && typeof a.name === 'string' && a.name.trim())
+      .map((a) => ({
+        id: a.id || require('crypto').randomUUID(),
+        name: a.name.trim(),
+      }));
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { $set: { teamRoster: sanitized } },
+      { new: true }
+    ).select('teamRoster');
+
+    return res.json({
+      success: true,
+      data: user.teamRoster,
+    });
+  } catch (err) {
+    next(err);
+  }
+};

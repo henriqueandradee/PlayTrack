@@ -22,6 +22,8 @@ const contextValueLabels: Record<string, string> = {
   'multi athlete': 'Vários atletas',
   'multi atleta': 'Vários atletas',
   team: 'Time completo',
+  meu_time: 'Meu Time',
+  outro_time: 'Outro Time',
   tactical: 'Tática',
   statistical: 'Estatística',
   both: 'Ambos',

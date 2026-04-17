@@ -1,11 +1,14 @@
 import { useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '@/stores/authStore';
 
 const Privacy = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const backTarget = (location.state as { from?: string } | null)?.from || '/mais';
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const defaultBack = isAuthenticated ? '/mais' : '/';
+  const backTarget = (location.state as { from?: string } | null)?.from || defaultBack;
 
   useEffect(() => {
     window.scrollTo(0, 0);

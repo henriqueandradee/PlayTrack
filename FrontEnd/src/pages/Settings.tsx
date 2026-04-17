@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { LogOut, User, CreditCard, ChevronRight } from 'lucide-react';
+import { LogOut, User, CreditCard, ChevronRight, GraduationCap } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import api from '@/lib/api';
 import { PlanBadge } from '@/components/PlanBadge';
 import { PricingModal } from '@/components/PricingModal';
+import { useTutorial } from '@/components/OnboardingTutorial';
 
 const Settings = () => {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const [pricingOpen, setPricingOpen] = useState(false);
+  const { startTutorial } = useTutorial();
 
   const handleLogout = async () => {
     try {
@@ -63,6 +65,25 @@ const Settings = () => {
             </button>
           )}
         </div>
+      </div>
+
+      {/* Tutorial */}
+      <div className="glass-card p-5 mb-4">
+        <button
+          onClick={startTutorial}
+          className="flex items-center justify-between w-full group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <GraduationCap className="h-4 w-4 text-primary" />
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-medium text-foreground">Ver tutorial novamente</p>
+              <p className="text-xs text-text-secondary">Reveja o passo a passo do PlayTrack</p>
+            </div>
+          </div>
+          <ChevronRight className="h-4 w-4 text-text-secondary group-hover:text-primary transition-colors" />
+        </button>
       </div>
 
       {/* Mais */}

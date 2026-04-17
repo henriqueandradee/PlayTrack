@@ -21,6 +21,7 @@ import Cookies from '@/pages/Cookies';
 import DataRights from '@/pages/DataRights';
 import DMCA from '@/pages/DMCA';
 import CookieBanner from '@/components/CookieBanner';
+import Landing from '@/pages/Landing';
 import NotFound from './pages/NotFound';
 
 const queryClient = new QueryClient();
@@ -32,7 +33,7 @@ const IndexRedirect = () => {
   // Aguarda hydrate antes de redirecionar
   if (!hydrated) return null;
   
-  return <Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />;
+  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <Landing />;
 };
 
 const App = () => {

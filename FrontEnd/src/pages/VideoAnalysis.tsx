@@ -72,6 +72,8 @@ const VideoAnalysis = () => {
   const [pendingTacticalNote, setPendingTacticalNote] = useState<string | null>(null);
   const [statsAthleteId, setStatsAthleteId] = useState<string | null>(null);
   const [tacticsAthleteId, setTacticsAthleteId] = useState<string | null>(null);
+  const [showAttributionPopup, setShowAttributionPopup] = useState(false);
+  const [pendingAnnotationText, setPendingAnnotationText] = useState<string | null>(null);
 
   // Timer manual para modo presencial (live)
   const [liveTime, setLiveTime] = useState(0);
@@ -80,7 +82,8 @@ const VideoAnalysis = () => {
 
   const isLiveMode = video?.context?.analysisMode === 'presencial' || video?.source.type === 'live';
   const athletes: AthleteItem[] = video?.context?.athletes || [];
-  const isMultiAthlete = video?.context?.scope === 'multi atleta';
+  const isMultiAthlete = ['meu_time', 'outro_time', 'multi atleta', 'time'].includes(video?.context?.scope || '');
+  const hasAthletes = athletes.length > 0;
   const analysisType = video?.context?.analysisType;
   const showStatisticalAnalysis = analysisType !== 'tática';
   const showTacticalAnalysis = analysisType !== 'estatística';
@@ -89,7 +92,7 @@ const VideoAnalysis = () => {
   const activeTimestamp = isLiveMode ? liveTime : currentTime;
   // Botões ficam habilitados se: modo presencial (sempre) ou player pronto, e não concluído
   const isCompleted = video?.analysisStatus === 'completed';
-  const canRegister = (isLiveMode ? true : isPlayerReady) && !isCompleted && (!isMultiAthlete || athletes.length > 0);
+  const canRegister = (isLiveMode ? true : isPlayerReady) && !isCompleted;
 
   // Gerenciar timer manual do modo presencial
   useEffect(() => {
@@ -155,11 +158,6 @@ const VideoAnalysis = () => {
     if (!videoId) return;
     const timestamp = isLiveMode ? liveTime : (player?.getCurrentTime() ?? 0);
 
-    if (isMultiAthlete && (!athlete || !athlete.id || !athlete.name)) {
-      toast.error('Selecione um atleta para registrar esta ação');
-      return;
-    }
-
     try {
       const res = await api.post('/analysis/events', {
         videoId,
@@ -170,11 +168,12 @@ const VideoAnalysis = () => {
         athleteName: athlete?.name,
       });
       setEvents((prev) => [...prev, res.data.data].sort((a, b) => a.videoTimestampSeconds - b.videoTimestampSeconds));
-      toast.success(`✓ ${actionType} em ${formatTime(timestamp)}`);
+      toast.success(`✓ ${actionType}${athlete?.name ? ` (${athlete.name})` : ''} em ${formatTime(timestamp)}`);
       if (athlete?.id) {
         setLastAthleteId(athlete.id);
       }
       setPendingAction(null);
+      setShowAttributionPopup(false);
       fetchStats();
     } catch (err: any) {
       if (err.response?.data?.code === 'EVENT_LIMIT_REACHED') {
@@ -183,28 +182,24 @@ const VideoAnalysis = () => {
         toast.error(getErrorMessage(err));
       }
     }
-  }, [isLiveMode, liveTime, player, videoId, fetchStats, isMultiAthlete]);
+  }, [isLiveMode, liveTime, player, videoId, fetchStats]);
 
   const handleActionClick = (actionType: ActionType) => {
-    if (isMultiAthlete) {
-      if (athletes.length === 0) {
-        toast.error('Adicione atletas para iniciar a análise multi atleta');
-        return;
-      }
+    if (hasAthletes) {
       setPendingAction(actionType);
+      setPendingAnnotationText(null);
       return;
     }
-
     handleRegister(actionType);
   };
 
-  const handleAthleteClick = (athlete: AthleteItem) => {
-    if (!pendingAction) {
-      toast.info('Selecione uma ação antes de escolher o atleta');
-      return;
+  const handleAttributionSelect = async (athlete?: AthleteItem) => {
+    if (pendingAction) {
+      await handleRegister(pendingAction, athlete);
+    } else if (pendingAnnotationText) {
+      await submitAnnotation(pendingAnnotationText, athlete);
+      setPendingAnnotationText(null);
     }
-
-    handleRegister(pendingAction, athlete);
   };
 
   const computeStatsForAthlete = (athleteId: string | null) => {
@@ -281,9 +276,9 @@ const VideoAnalysis = () => {
   const handleAnnotation = async () => {
     if (!note.trim() || !videoId) return;
 
-    if (showTacticalAnalysis && isMultiAthlete) {
-      setPendingTacticalNote(note.trim());
-      toast.info('Agora selecione o atleta em "Atletas da partida" para atribuir a anotação');
+    if (hasAthletes) {
+      setPendingAnnotationText(note.trim());
+      setPendingAction(null);
       return;
     }
 
@@ -435,71 +430,65 @@ const VideoAnalysis = () => {
 
           {/* Analysis panels */}
           <div className="space-y-3 shrink-0">
-            {isMultiAthlete && (
+            {/* Attribution Panel */}
+            {hasAthletes && (
               <div className="glass-card p-3">
-                <p className="text-sm font-medium text-foreground">Atletas da partida</p>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-semibold text-foreground">
+                    {pendingAction
+                      ? `Atribuir: ${pendingAction}`
+                      : pendingAnnotationText
+                      ? 'Atribuir anotação'
+                      : 'Atribuição'}
+                  </p>
+                  {(pendingAction || pendingAnnotationText) && (
+                    <button
+                      onClick={() => {
+                        setPendingAction(null);
+                        setPendingAnnotationText(null);
+                      }}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                  )}
+                </div>
                 <p className="text-xs text-text-secondary mb-2">
-                  {showStatisticalAnalysis && !showTacticalAnalysis
-                    ? 'Selecione uma ação estatística e depois toque no atleta correspondente.'
-                    : showTacticalAnalysis && !showStatisticalAnalysis
-                    ? 'Digite a anotação, clique em Registrar e depois selecione o atleta.'
-                    : 'Use para atribuir anotações táticas ou estatísticas ao devido jogador.'}
+                  {pendingAction || pendingAnnotationText
+                    ? 'Selecione a quem atribuir este registro:'
+                    : 'Selecione uma ação ou registre uma anotação primeiro.'}
                 </p>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {athletes.map((athlete) => {
-                    const canAssignTactical = showTacticalAnalysis && !!pendingTacticalNote && canRegister;
-                    const canAssignStat = showStatisticalAnalysis && !!pendingAction && canRegister;
-                    const canClickAthlete = canRegister;
-                    const isSelected =
-                      (showStatisticalAnalysis && !!pendingAction && lastAthleteId === athlete.id) ||
-                      (showTacticalAnalysis && !!pendingTacticalNote && tacticAthleteId === athlete.id);
-
-                    return (
-                      <button
-                        key={athlete.id}
-                        type="button"
-                        onClick={async () => {
-                          if (canAssignStat) {
-                            handleAthleteClick(athlete);
-                            return;
-                          }
-
-                          if (canAssignTactical && pendingTacticalNote) {
-                            setTacticAthleteId(athlete.id);
-                            await submitAnnotation(pendingTacticalNote, athlete);
-                            return;
-                          }
-
-                          if (showTacticalAnalysis) {
-                            toast.info('Digite a anotação e clique em Registrar antes de escolher o atleta');
-                          } else {
-                            toast.info('Selecione uma ação antes de escolher o atleta');
-                          }
-                        }}
-                        disabled={!canRegister}
-                        className={`rounded-lg border px-3 py-2 text-left transition-all ${
-                          isSelected
-                            ? 'border-primary bg-primary/10 text-foreground'
-                            : 'border-border bg-card text-foreground hover:border-primary/60'
-                        } ${!canClickAthlete ? 'opacity-60 cursor-not-allowed' : ''}`}
-                      >
-                        <div className="text-sm font-medium truncate">{athlete.name}</div>
-                        {canAssignStat && (
-                          <div className="text-[11px] text-text-secondary">
-                            Registrar {pendingAction}
-                          </div>
-                        )}
-                        {canAssignTactical && (
-                          <div className="text-[11px] text-text-secondary">Atribuir anotação tática</div>
-                        )}
-                        {!canAssignStat && !canAssignTactical && (
-                          <div className="text-[11px] text-text-secondary">
-                            {showTacticalAnalysis ? 'Aguardando clique em Registrar' : 'Selecione uma ação'}
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
+                  {/* Team option */}
+                  <button
+                    type="button"
+                    onClick={() => handleAttributionSelect(undefined)}
+                    disabled={!pendingAction && !pendingAnnotationText}
+                    className={`rounded-lg border px-3 py-2 text-left transition-all ${
+                      pendingAction || pendingAnnotationText
+                        ? 'border-border bg-card text-foreground hover:border-primary/60'
+                        : 'border-border/50 bg-card/50 text-muted-foreground opacity-60 cursor-not-allowed'
+                    }`}
+                  >
+                    <div className="text-sm font-medium">Time</div>
+                    <div className="text-[11px] text-text-secondary">Sem atleta específico</div>
+                  </button>
+                  {/* Individual athletes */}
+                  {athletes.map((athlete) => (
+                    <button
+                      key={athlete.id}
+                      type="button"
+                      onClick={() => handleAttributionSelect(athlete)}
+                      disabled={!pendingAction && !pendingAnnotationText}
+                      className={`rounded-lg border px-3 py-2 text-left transition-all ${
+                        pendingAction || pendingAnnotationText
+                          ? 'border-border bg-card text-foreground hover:border-primary/60'
+                          : 'border-border/50 bg-card/50 text-muted-foreground opacity-60 cursor-not-allowed'
+                      }`}
+                    >
+                      <div className="text-sm font-medium truncate">{athlete.name}</div>
+                    </button>
+                  ))}
                 </div>
               </div>
             )}

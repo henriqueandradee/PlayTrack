@@ -33,9 +33,8 @@ const Videos = () => {
 
   // States para Match
   const [matchTitle, setMatchTitle] = useState('');
-  const [analysisType, setAnalysisType] = useState('');
-  const [scope, setScope] = useState('');
-  const [gameType, setGameType] = useState('');
+  const [selectedAnalysisTypes, setSelectedAnalysisTypes] = useState<Set<string>>(new Set());
+  const [scope, setScope] = useState<'meu_time' | 'outro_time' | ''>('');
   const [analysisMode, setAnalysisMode] = useState('');
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [athletes, setAthletes] = useState<Athlete[]>([]);
@@ -43,11 +42,14 @@ const Videos = () => {
   const [createMatchError, setCreateMatchError] = useState('');
   const [createMatchErrors, setCreateMatchErrors] = useState<string[]>([]);
   const [creatingMatch, setCreatingMatch] = useState(false);
+  const [roster, setRoster] = useState<Athlete[]>([]);
 
   const canAddVideo = user?.plan === 'pro' || (user?.usage.videoCount ?? 0) < 5;
 
   useEffect(() => {
     fetchVideos();
+    // Fetch roster
+    api.get('/auth/roster').then((res) => setRoster(res.data.data || [])).catch(() => {});
   }, []);
 
   const fetchVideos = async () => {
@@ -76,8 +78,19 @@ const Videos = () => {
       id: crypto.randomUUID?.() || Math.random().toString(36).substr(2, 9),
       name: normalizedName,
     };
-    setAthletes([...athletes, newAthlete]);
+    const updatedAthletes = [...athletes, newAthlete];
+    setAthletes(updatedAthletes);
     setNewAthleteName('');
+
+    // Auto-sync to roster if meu_time
+    if (scope === 'meu_time') {
+      const rosterNames = roster.map((a) => a.name.toLowerCase());
+      if (!rosterNames.includes(normalizedName.toLowerCase())) {
+        const updatedRoster = [...roster, newAthlete];
+        setRoster(updatedRoster);
+        api.put('/auth/roster', { roster: updatedRoster }).catch(() => {});
+      }
+    }
   };
 
   const handleRemoveAthlete = (id: string) => {
@@ -87,32 +100,26 @@ const Videos = () => {
   const validateCreateMatch = useCallback((): boolean => {
     const errors: string[] = [];
     if (!matchTitle.trim()) errors.push('Título é obrigatório');
-    if (!analysisType) errors.push('Tipo de análise é obrigatório');
-    if (!scope) errors.push('Quem analisar é obrigatório');
-    if (!gameType) errors.push('Tipo de jogo é obrigatório');
+    if (selectedAnalysisTypes.size === 0) errors.push('Selecione pelo menos um tipo de análise');
+    if (!scope) errors.push('Selecione "Meu Time" ou "Outro Time"');
     if (!analysisMode) errors.push('Modo de análise é obrigatório');
     if (analysisMode === 'YouTube' && !youtubeUrl.trim()) {
       errors.push('URL do YouTube é obrigatória para modo YouTube');
     }
     if (analysisMode === 'YouTube' && youtubeUrl.trim()) {
-      // Aceita: youtu.be/VIDEO_ID, youtu.be/VIDEO_ID?si=..., youtube.com/watch?v=VIDEO_ID, youtube.com/live/VIDEO_ID, etc.
       const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)\/.+/;
       if (!youtubeRegex.test(youtubeUrl)) {
         errors.push('URL do YouTube inválida. Formatos aceitos: youtu.be/VIDEO_ID, youtube.com/watch?v=VIDEO_ID, youtube.com/live/VIDEO_ID, link de compartilhamento ou embed');
       }
     }
-    if (scope === 'multi atleta' && athletes.length === 0) {
-      errors.push('Adicione pelo menos 1 atleta para vários atletas');
-    }
     setCreateMatchErrors(errors);
     return errors.length === 0;
-  }, [matchTitle, analysisType, scope, gameType, analysisMode, youtubeUrl, athletes]);
+  }, [matchTitle, selectedAnalysisTypes, scope, analysisMode, youtubeUrl]);
 
   const resetForm = () => {
     setMatchTitle('');
-    setAnalysisType('');
+    setSelectedAnalysisTypes(new Set());
     setScope('');
-    setGameType('');
     setAnalysisMode('');
     setYoutubeUrl('');
     setAthletes([]);
@@ -132,18 +139,22 @@ const Videos = () => {
     setCreatingMatch(true);
     try {
       // Criar partida como vídeo com metadados completos
+      const derivedAnalysisType = selectedAnalysisTypes.has('estatística') && selectedAnalysisTypes.has('tática')
+        ? 'ambos'
+        : selectedAnalysisTypes.has('estatística') ? 'estatística' : 'tática';
+
       const videoPayload: Record<string, unknown> = {
         title: matchTitle.trim(),
         description: '',
         sourceType: analysisMode === 'YouTube' ? 'youtube' : 'live',
         context: {
           sport: 'basketball',
-          analysisType,
+          analysisType: derivedAnalysisType,
           scope,
-          gameType,
+          gameType: 'jogo',
           analysisMode,
-          eventType: gameType === 'jogo' ? 'game' : 'study',
-          athletes: scope === 'multi atleta' ? athletes : [],
+          eventType: 'game',
+          athletes: athletes,
         },
       };
 
@@ -337,57 +348,117 @@ const Videos = () => {
                 />
               </div>
 
-              {/* Tipo de Análise */}
+              {/* Tipo de Análise (multi-toggle) */}
               <div>
                 <label className="block text-sm font-medium text-text-secondary mb-2">
                   Tipo de Análise *
                 </label>
-                <div className="grid grid-cols-3 gap-3">
-                  {['estatística', 'tática', 'ambos'].map((type) => (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => setAnalysisType(type)}
-                      className={`px-4 py-2.5 rounded-lg font-medium transition-all ${
-                        analysisType === type
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-elevated border border-border text-foreground hover:border-primary'
-                      }`}
-                    >
-                      {type.charAt(0).toUpperCase() + type.slice(1)}
-                    </button>
-                  ))}
+                <div className="grid grid-cols-2 gap-3">
+                  {['estatística', 'tática'].map((type) => {
+                    const isSelected = selectedAnalysisTypes.has(type);
+                    return (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => {
+                          setSelectedAnalysisTypes((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(type)) next.delete(type);
+                            else next.add(type);
+                            return next;
+                          });
+                        }}
+                        className={`px-4 py-2.5 rounded-lg font-medium transition-all ${
+                          isSelected
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-elevated border border-border text-foreground hover:border-primary'
+                        }`}
+                      >
+                        {type.charAt(0).toUpperCase() + type.slice(1)}
+                      </button>
+                    );
+                  })}
                 </div>
+                {selectedAnalysisTypes.size === 2 && (
+                  <p className="text-xs text-primary mt-1.5">✓ Estatística + Tática selecionados</p>
+                )}
               </div>
 
               {/* Quem analisar */}
               <div>
                 <label className="block text-sm font-medium text-text-secondary mb-2">Quem analisar? *</label>
-                <select
-                  value={scope}
-                  onChange={(e) => {
-                    setScope(e.target.value);
-                    if (e.target.value !== 'multi atleta') {
-                      setAthletes([]);
-                      setNewAthleteName('');
-                    }
-                  }}
-                  className="w-full px-4 py-2.5 rounded-lg bg-elevated border border-border text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-                >
-                  <option value="">-- Selecione --</option>
-                  <option value="eu">Análise Pessoal (Eu)</option>
-                  <option value="outro atleta">Outro Atleta</option>
-                  <option value="multi atleta">Vários atletas</option>
-                  <option value="time">Time Completo</option>
-                </select>
+                <div className="grid grid-cols-2 gap-3">
+                  {[{value: 'meu_time', label: 'Meu Time'}, {value: 'outro_time', label: 'Outro Time'}].map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => {
+                        setScope(opt.value as 'meu_time' | 'outro_time');
+                        setAthletes([]);
+                        setNewAthleteName('');
+                      }}
+                      className={`px-4 py-2.5 rounded-lg font-medium transition-all ${
+                        scope === opt.value
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-elevated border border-border text-foreground hover:border-primary'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {/* Multi-Atleta: Adicionar atletas */}
-              {scope === 'multi atleta' && (
+              {/* Atletas (shown for both scopes once selected) */}
+              {scope && (
                 <div className="p-4 bg-elevated rounded-lg border border-border">
-                  <label className="block text-sm font-medium text-text-secondary mb-3">
-                    Atletas a Analisar
+                  <label className="block text-sm font-medium text-text-secondary mb-1">
+                    Atletas {scope === 'meu_time' ? 'do Meu Time' : 'do Outro Time'}
                   </label>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    {scope === 'meu_time'
+                      ? 'Adicione os jogadores do seu time. Eles ficam salvos para partidas futuras.'
+                      : 'Adicione os jogadores do time adversário para esta partida.'}
+                  </p>
+
+                  {/* Roster suggestions for meu_time */}
+                  {scope === 'meu_time' && roster.length > 0 && (
+                    <div className="mb-3">
+                      <p className="text-xs text-text-secondary mb-1.5">Atletas salvos (clique para adicionar, × para remover):</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {roster
+                          .filter((r) => !athletes.some((a) => a.id === r.id))
+                          .map((r) => (
+                            <span
+                              key={r.id}
+                              className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium border border-primary/20"
+                            >
+                              <button
+                                type="button"
+                                onClick={() => setAthletes([...athletes, r])}
+                                className="hover:underline"
+                              >
+                                + {r.name}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const updatedRoster = roster.filter((a) => a.id !== r.id);
+                                  setRoster(updatedRoster);
+                                  setAthletes(athletes.filter((a) => a.id !== r.id));
+                                  api.put('/auth/roster', { roster: updatedRoster }).catch(() => {});
+                                }}
+                                className="ml-0.5 p-0.5 rounded-full hover:bg-destructive/20 hover:text-destructive transition-colors"
+                                title={`Remover ${r.name} dos salvos`}
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </span>
+                          ))}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="flex gap-2 mb-3">
                     <input
@@ -434,33 +505,12 @@ const Videos = () => {
                   )}
 
                   {athletes.length === 0 && (
-                    <p className="text-sm text-muted-foreground italic">Nenhum atleta adicionado ainda</p>
+                    <p className="text-sm text-muted-foreground italic">Nenhum atleta adicionado ainda (opcional)</p>
                   )}
                 </div>
               )}
 
-              {/* Tipo de Jogo */}
-              <div>
-                <label className="block text-sm font-medium text-text-secondary mb-2">
-                  Tipo de Jogo *
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  {['jogo', 'estudo'].map((type) => (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => setGameType(type)}
-                      className={`px-4 py-2.5 rounded-lg font-medium transition-all ${
-                        gameType === type
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-elevated border border-border text-foreground hover:border-primary'
-                      }`}
-                    >
-                      {type.charAt(0).toUpperCase() + type.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              </div>
+
 
               {/* Modo de Análise */}
               <div>
@@ -468,21 +518,21 @@ const Videos = () => {
                   Modo de Análise *
                 </label>
                 <div className="grid grid-cols-2 gap-3">
-                  {['presencial', 'YouTube'].map((mode) => (
+                  {[{value: 'presencial', label: 'Presencial'}, {value: 'YouTube', label: 'YouTube'}].map((mode) => (
                     <button
-                      key={mode}
+                      key={mode.value}
                       type="button"
                       onClick={() => {
-                        setAnalysisMode(mode);
-                        if (mode !== 'YouTube') setYoutubeUrl('');
+                        setAnalysisMode(mode.value);
+                        if (mode.value !== 'YouTube') setYoutubeUrl('');
                       }}
                       className={`px-4 py-2.5 rounded-lg font-medium transition-all ${
-                        analysisMode === mode
+                        analysisMode === mode.value
                           ? 'bg-primary text-primary-foreground'
                           : 'bg-elevated border border-border text-foreground hover:border-primary'
                       }`}
                     >
-                      {mode}
+                      {mode.label}
                     </button>
                   ))}
                 </div>

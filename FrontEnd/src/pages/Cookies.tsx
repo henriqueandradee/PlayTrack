@@ -1,9 +1,14 @@
 import { useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuthStore } from '@/stores/authStore';
 
 const Cookies = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const defaultBack = isAuthenticated ? '/mais' : '/';
+  const backTarget = (location.state as { from?: string } | null)?.from || defaultBack;
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -14,7 +19,7 @@ const Cookies = () => {
       <div className="border-b border-border bg-card sticky top-0 z-40">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center gap-4">
           <button
-            onClick={() => navigate('/mais')}
+            onClick={() => navigate(backTarget)}
             className="p-2 hover:bg-muted rounded-lg transition-colors"
             aria-label="Voltar"
           >

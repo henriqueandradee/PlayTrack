@@ -20,4 +20,7 @@ router.get(
 // GET /stats/career — aggregated stats across all videos
 router.get('/career', statsLimiter, statsController.getCareerStats);
 
+// GET /stats/career/athletes — career stats grouped by athlete
+router.get('/career/athletes', statsLimiter, statsController.getCareerStatsByAthlete);
+
 module.exports = router;

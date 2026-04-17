@@ -53,6 +53,14 @@ const userSchema = new mongoose.Schema(
       videoCount: { type: Number, default: 0, min: 0 },
     },
 
+    // --- Team roster (persistent athlete list for 'Meu Time') ---
+    teamRoster: [
+      {
+        id: { type: String, required: true },
+        name: { type: String, required: true, trim: true },
+      },
+    ],
+
     // --- LGPD: Age Validation (Art. 14) ---
     dateOfBirth: {
       type: Date,

@@ -4,6 +4,7 @@ export interface User {
   email: string;
   plan: 'free' | 'pro';
   usage: { videoCount: number };
+  teamRoster?: { id: string; name: string }[];
 }
 
 export interface VideoSource {
@@ -17,7 +18,7 @@ export interface VideoSource {
 export interface VideoContext {
   sport: string;
   analysisType?: 'estatística' | 'tática' | 'ambos';
-  scope?: 'eu' | 'outro atleta' | 'multi atleta' | 'time';
+  scope?: 'meu_time' | 'outro_time' | /* compat */ 'eu' | 'outro atleta' | 'multi atleta' | 'time';
   gameType?: 'jogo' | 'estudo';
   analysisMode?: 'presencial' | 'YouTube';
   eventType?: 'game' | 'training' | 'study' | 'other';
@@ -97,4 +98,12 @@ export interface SubscriptionStatus {
     currentPeriodEnd: string;
     canceledAt: string | null;
   } | null;
+}
+
+export interface AthleteStats {
+  athleteId: string;
+  athleteName: string;
+  gamesPlayed: number;
+  aggregates: VideoStats['aggregates'];
+  computed: VideoStats['computed'];
 }

@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/authStore';
 import api from '@/lib/api';
 import { PlanBadge } from '@/components/PlanBadge';
 import { PricingModal } from '@/components/PricingModal';
+import OnboardingTutorial from '@/components/OnboardingTutorial';
 import { useState } from 'react';
 
 const navItems = [
@@ -156,6 +157,7 @@ const AppLayout = () => {
         </main>
       </div>
 
+      <OnboardingTutorial />
       <PricingModal open={pricingOpen} onClose={() => setPricingOpen(false)} />
     </div>
   );

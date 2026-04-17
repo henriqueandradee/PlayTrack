@@ -47,7 +47,7 @@ const videoSchema = new mongoose.Schema(
       },
       scope: {
         type: String,
-        enum: ['eu', 'outro atleta', 'multi atleta', 'time'],
+        enum: ['meu_time', 'outro_time', /* compat */ 'eu', 'outro atleta', 'multi atleta', 'time'],
         required: true,
       },
       gameType: {
