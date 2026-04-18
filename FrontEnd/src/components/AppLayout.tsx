@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Video, BarChart3, Settings, LogOut, Sparkles, Menu, X, ChevronLeft } from 'lucide-react';
+import { LayoutDashboard, Video, BarChart3, Settings, LogOut, Sparkles, Menu, X, ChevronLeft, TrendingUp } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import api from '@/lib/api';
 import { PlanBadge } from '@/components/PlanBadge';
@@ -12,6 +12,7 @@ const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Painel' },
   { to: '/videos', icon: Video, label: 'Meus Jogos' },
   { to: '/stats', icon: BarChart3, label: 'Estatísticas' },
+  { to: '/evolution', icon: TrendingUp, label: 'Evolução' },
   { to: '/settings', icon: Settings, label: 'Configurações' },
 ];
 

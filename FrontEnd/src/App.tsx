@@ -13,6 +13,7 @@ import Videos from '@/pages/Videos';
 import VideoAnalysis from '@/pages/VideoAnalysis';
 import SharedAnalysis from '@/pages/SharedAnalysis';
 import Stats from '@/pages/Stats';
+import Evolution from '@/pages/Evolution';
 import Settings from '@/pages/Settings';
 import More from '@/pages/More';
 import Privacy from '@/pages/Privacy';
@@ -89,6 +90,7 @@ const App = () => {
               <Route path="/videos" element={<Videos />} />
               <Route path="/videos/:videoId" element={<VideoAnalysis />} />
               <Route path="/stats" element={<Stats />} />
+              <Route path="/evolution" element={<Evolution />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/mais" element={<More />} />
               <Route path="/data-rights" element={<DataRights />} />

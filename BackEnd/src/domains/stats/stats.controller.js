@@ -186,3 +186,69 @@ exports.getCareerStatsByAthlete = async (req, res, next) => {
     next(err);
   }
 };
+
+/**
+ * GET /stats/evolution?athleteId=xyz
+ * Returns per-game stats for the evolution chart.
+ * If athleteId is provided, returns stats for that athlete across games.
+ * Otherwise returns team-level stats per game.
+ */
+exports.getEvolutionStats = async (req, res, next) => {
+  try {
+    const { athleteId } = req.query;
+
+    // Get all completed meu_time videos
+    const videos = await Video.find({
+      userId: req.user._id,
+      deletedAt: null,
+      analysisStatus: 'completed',
+      'context.scope': { $in: ['meu_time', 'eu', 'multi atleta', 'time'] },
+    })
+      .select('_id title createdAt')
+      .sort({ createdAt: 1 })
+      .lean();
+
+    if (!videos.length) return success(res, []);
+
+    const videoIds = videos.map((v) => v._id);
+
+    // Build event match filter
+    const eventMatch = {
+      videoId: { $in: videoIds },
+      userId: req.user._id,
+      deletedAt: null,
+      category: 'stat',
+    };
+    if (athleteId) {
+      eventMatch.athleteId = athleteId;
+    }
+
+    const Event = require('../../models/Event');
+    const events = await Event.find(eventMatch).lean();
+
+    // Group events by videoId
+    const eventsByVideo = {};
+    for (const ev of events) {
+      const vid = ev.videoId.toString();
+      if (!eventsByVideo[vid]) eventsByVideo[vid] = [];
+      eventsByVideo[vid].push(ev);
+    }
+
+    // Compute stats per video
+    const result = videos.map((video) => {
+      const vidEvents = eventsByVideo[video._id.toString()] || [];
+      const { aggregates, computed } = computeFromEvents(vidEvents);
+      return {
+        videoId: video._id,
+        title: video.title,
+        date: video.createdAt,
+        aggregates,
+        computed,
+      };
+    });
+
+    return success(res, result);
+  } catch (err) {
+    next(err);
+  }
+};

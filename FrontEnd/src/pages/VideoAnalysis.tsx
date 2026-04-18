@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Trash2, Clock, FileText, BarChart3, Info, MapPin, Play, Pause, Share2 } from 'lucide-react';
+import { Trash2, Clock, FileText, BarChart3, Info, MapPin, Play, Pause, Share2, Download } from 'lucide-react';
 import api, { getErrorMessage } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { usePlayerStore } from '@/stores/playerStore';
@@ -8,6 +8,7 @@ import { YouTubePlayer } from '@/components/YouTubePlayer';
 import { ShareAnalysisModal } from '@/components/ShareAnalysisModal';
 import { UpgradeModal } from '@/components/UpgradeModal';
 import { formatTime, formatPct } from '@/lib/helpers';
+import { exportBoxScorePDF, exportTacticalPDF } from '@/lib/exportPdf';
 import { toast } from 'sonner';
 import type { Video, GameEvent, ActionType, VideoStats } from '@/types';
 
@@ -705,6 +706,23 @@ const VideoAnalysis = () => {
                   </table>
                 );
               })()}
+              {/* Export button */}
+              <div className="mt-4 pt-3 border-t border-border shrink-0">
+                <button
+                  onClick={() => {
+                    const teamStats = computeStatsForAthlete(null);
+                    const athleteData = athletes.map((a) => ({
+                      name: a.name,
+                      stats: computeStatsForAthlete(a.id),
+                    }));
+                    exportBoxScorePDF(video.title, teamStats, athleteData.length > 0 ? athleteData : undefined);
+                  }}
+                  className="flex items-center gap-2 text-sm px-4 py-2 rounded-lg font-medium transition-colors bg-elevated border border-border text-text-secondary hover:text-foreground hover:border-primary/50 w-full justify-center"
+                >
+                  <Download size={14} />
+                  Exportar Box Score
+                </button>
+              </div>
             </div>
           )}
 
@@ -765,6 +783,23 @@ const VideoAnalysis = () => {
                     </div>
                   ))
                 )}
+              </div>
+              {/* Export button */}
+              <div className="mt-4 pt-3 border-t border-border shrink-0">
+                <button
+                  onClick={() => {
+                    const tactEvents = filteredTacticalEvents.map((ev) => ({
+                      videoTimestampSeconds: ev.videoTimestampSeconds,
+                      note: ev.note,
+                      athleteName: ev.athleteName,
+                    }));
+                    exportTacticalPDF(video.title, tactEvents);
+                  }}
+                  className="flex items-center gap-2 text-sm px-4 py-2 rounded-lg font-medium transition-colors bg-elevated border border-border text-text-secondary hover:text-foreground hover:border-primary/50 w-full justify-center"
+                >
+                  <Download size={14} />
+                  Exportar Anotações Táticas
+                </button>
               </div>
             </div>
           )}
