@@ -156,6 +156,14 @@ const VideoAnalysis = () => {
     fetch();
   }, [videoId]);
 
+  // Sincroniza o passo 4 do tutorial apenas quando o carregamento for concluído (prevenindo DOM Not Found em prod)
+  const { stepIndex, setStepIndex, run } = useTourStore();
+  useEffect(() => {
+    if (!loading && run && stepIndex === 3) {
+      setTimeout(() => setStepIndex(4), 100); // Garante que a UI respirou fora da tela de loading
+    }
+  }, [loading, run, stepIndex, setStepIndex]);
+
   const handleRegister = useCallback(async (actionType: ActionType, athlete?: AthleteItem) => {
     if (!videoId) return;
     const timestamp = isLiveMode ? liveTime : (player?.getCurrentTime() ?? 0);
