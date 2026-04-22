@@ -18,10 +18,10 @@ export const useTourStore = create<TourState>()(
       run: false,
       stepIndex: 0,
       hasSeenTour: false,
-      startTour: () => set({ run: true, stepIndex: 0 }),
+      startTour: () => set({ run: true, stepIndex: 0, hasSeenTour: true }),
       stopTour: () => set({ run: false }),
       setStepIndex: (index) => set({ stepIndex: index }),
-      resetTour: () => set({ run: true, stepIndex: 0, hasSeenTour: false }),
+      resetTour: () => set({ run: true, stepIndex: 0, hasSeenTour: true }),
       finishTour: () => set({ run: false, hasSeenTour: true, stepIndex: 0 }),
     }),
     {
