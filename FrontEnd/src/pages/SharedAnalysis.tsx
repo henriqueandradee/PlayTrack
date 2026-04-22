@@ -148,7 +148,7 @@ const SharedAnalysis = () => {
 
   const tabs: { key: TabKey; label: string; shortLabel: string; icon: typeof Clock }[] = [
     { key: 'timeline', label: 'Timeline', shortLabel: 'Timeline', icon: Clock },
-    ...(showStatisticalAnalysis ? [{ key: 'stats' as TabKey, label: 'Box-Score', shortLabel: 'Box-Score', icon: BarChart3 }] : []),
+    ...(showStatisticalAnalysis ? [{ key: 'stats' as TabKey, label: 'Estatísticas', shortLabel: 'Stats', icon: BarChart3 }] : []),
     ...(showTacticalAnalysis ? [{ key: 'tactics' as TabKey, label: 'Táticas', shortLabel: 'Táticas', icon: FileText as any }] : []),
   ];
 
