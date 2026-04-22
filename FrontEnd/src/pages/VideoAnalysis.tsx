@@ -133,7 +133,7 @@ const VideoAnalysis = () => {
     try {
       const res = await api.get(`/stats/videos/${videoId}`);
       setStats(res.data.data);
-    } catch {}
+    } catch { }
   }, [videoId]);
 
   useEffect(() => {
@@ -149,7 +149,7 @@ const VideoAnalysis = () => {
           setEvents(vRes.value.data.data.events || []);
         }
         if (sRes.status === 'fulfilled') setStats(sRes.value.data.data);
-      } catch {} finally {
+      } catch { } finally {
         setLoading(false);
       }
     };
@@ -213,7 +213,7 @@ const VideoAnalysis = () => {
   };
 
   const computeStatsForAthlete = (athleteId: string | null) => {
-    const filterEvents = athleteId 
+    const filterEvents = athleteId
       ? events.filter(e => e.category === 'stat' && e.athleteId === athleteId)
       : events.filter(e => e.category === 'stat');
 
@@ -348,7 +348,7 @@ const VideoAnalysis = () => {
   }
 
   const tabs: { key: TabKey; label: string; shortLabel: string; icon: typeof Clock }[] = [
-    { key: 'timeline', label: 'Linha do tempo', shortLabel: 'Linha', icon: Clock },
+    { key: 'timeline', label: 'Timeline', shortLabel: 'Timeline', icon: Clock },
     ...(showStatisticalAnalysis ? [{ key: 'stats' as TabKey, label: 'Estatísticas', shortLabel: 'Stats', icon: BarChart3 }] : []),
     ...(showTacticalAnalysis ? [{ key: 'tactics' as TabKey, label: 'Táticas', shortLabel: 'Táticas', icon: FileText }] : []),
     { key: 'info', label: 'Informações', shortLabel: 'Info', icon: Info },
@@ -374,11 +374,10 @@ const VideoAnalysis = () => {
           )}
           <button
             onClick={handleFinalizeVideo}
-            className={`flex items-center justify-center min-w-[140px] gap-2 text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${
-              video.analysisStatus === 'completed' 
-                ? 'bg-elevated border border-border text-text-secondary hover:text-foreground hover:border-primary/50' 
+            className={`flex items-center justify-center min-w-[140px] gap-2 text-sm px-4 py-1.5 rounded-lg font-medium transition-colors ${video.analysisStatus === 'completed'
+                ? 'bg-elevated border border-border text-text-secondary hover:text-foreground hover:border-primary/50'
                 : 'bg-primary text-primary-foreground hover:opacity-90'
-            }`}
+              }`}
           >
             {video.analysisStatus === 'completed' ? 'Editar' : 'Finalizar'}
           </button>
@@ -387,7 +386,7 @@ const VideoAnalysis = () => {
 
       <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
         {/* Left: Player + Controls */}
-        <div className="flex-[3] min-w-0 flex flex-col gap-3 min-h-0">
+        <div className="flex-[3] min-w-0 flex flex-col gap-3 min-h-0 overflow-y-auto lg:pr-2 scrollbar-thin">
           {/* Player ou painel presencial */}
           {isLiveMode ? (
             <div className="glass-card p-4 sm:p-6 flex flex-col items-center gap-3 sm:gap-4 flex-none min-h-[220px] sm:min-h-[260px] justify-center">
@@ -401,11 +400,10 @@ const VideoAnalysis = () => {
               <div className="w-full max-w-sm grid grid-cols-2 gap-2 shrink-0">
                 <button
                   onClick={() => setTimerRunning((r) => !r)}
-                  className={`inline-flex items-center justify-center gap-2 w-full px-5 py-2.5 rounded-lg border text-sm font-medium transition-all ${
-                    timerRunning
+                  className={`inline-flex items-center justify-center gap-2 w-full px-5 py-2.5 rounded-lg border text-sm font-medium transition-all ${timerRunning
                       ? 'bg-warning/10 text-warning border-warning/40 hover:bg-warning/20'
                       : 'bg-primary text-primary-foreground border-primary hover:opacity-90'
-                  }`}
+                    }`}
                 >
                   {timerRunning ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                   {timerRunning ? 'Pausar' : 'Iniciar'}
@@ -423,7 +421,7 @@ const VideoAnalysis = () => {
             </div>
           ) : (
             ytId ? (
-              <div className="w-full h-48 sm:h-64 md:h-96 lg:flex-1 lg:min-h-0 bg-black rounded-lg overflow-hidden flex flex-col relative">
+              <div className="w-full aspect-video bg-black rounded-lg overflow-hidden flex flex-col relative shrink-0">
                 <YouTubePlayer videoId={ytId} />
               </div>
             ) : (
@@ -449,8 +447,8 @@ const VideoAnalysis = () => {
                     {pendingAction
                       ? `Atribuir: ${pendingAction}`
                       : pendingAnnotationText
-                      ? 'Atribuir anotação'
-                      : 'Atribuição'}
+                        ? 'Atribuir anotação'
+                        : 'Atribuição'}
                   </p>
                   {(pendingAction || pendingAnnotationText) && (
                     <button
@@ -475,11 +473,10 @@ const VideoAnalysis = () => {
                     type="button"
                     onClick={() => handleAttributionSelect(undefined)}
                     disabled={!pendingAction && !pendingAnnotationText}
-                    className={`rounded-lg border px-3 py-2 text-left transition-all ${
-                      pendingAction || pendingAnnotationText
+                    className={`rounded-lg border px-3 py-2 text-left transition-all ${pendingAction || pendingAnnotationText
                         ? 'border-border bg-card text-foreground hover:border-primary/60'
                         : 'border-border/50 bg-card/50 text-muted-foreground opacity-60 cursor-not-allowed'
-                    }`}
+                      }`}
                   >
                     <div className="text-sm font-medium">Time</div>
                     <div className="text-[11px] text-text-secondary">Sem atleta específico</div>
@@ -491,11 +488,10 @@ const VideoAnalysis = () => {
                       type="button"
                       onClick={() => handleAttributionSelect(athlete)}
                       disabled={!pendingAction && !pendingAnnotationText}
-                      className={`rounded-lg border px-3 py-2 text-left transition-all ${
-                        pendingAction || pendingAnnotationText
+                      className={`rounded-lg border px-3 py-2 text-left transition-all ${pendingAction || pendingAnnotationText
                           ? 'border-border bg-card text-foreground hover:border-primary/60'
                           : 'border-border/50 bg-card/50 text-muted-foreground opacity-60 cursor-not-allowed'
-                      }`}
+                        }`}
                     >
                       <div className="text-sm font-medium truncate">{athlete.name}</div>
                     </button>
@@ -587,9 +583,8 @@ const VideoAnalysis = () => {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex items-center gap-1 px-2.5 py-2.5 text-xs sm:gap-1.5 sm:px-3 sm:text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap ${
-                  activeTab === tab.key ? 'border-primary text-primary' : 'border-transparent text-text-secondary hover:text-foreground'
-                }`}
+                className={`flex items-center gap-1 px-2.5 py-2.5 text-xs sm:gap-1.5 sm:px-3 sm:text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap ${activeTab === tab.key ? 'border-primary text-primary' : 'border-transparent text-text-secondary hover:text-foreground'
+                  }`}
               >
                 <tab.icon className="h-3.5 w-3.5" />
                 <span className="hidden md:inline">{tab.label}</span>
@@ -602,17 +597,6 @@ const VideoAnalysis = () => {
             <div className="flex flex-col flex-1 min-h-0 space-y-3 overflow-hidden">
               <div className="flex items-center justify-between shrink-0">
                 <p className="text-sm text-text-secondary">Registros ({events.length})</p>
-                <div className="flex gap-1">
-                  {['all', 'stat', 'annotation'].map((c) => (
-                    <button
-                      key={c}
-                      onClick={() => setFilterCat(c)}
-                      className={`px-2 py-1 rounded text-xs transition-colors ${filterCat === c ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-                    >
-                        {c === 'all' ? 'Todos' : c === 'stat' ? 'Estatísticas' : 'Notas'}
-                    </button>
-                  ))}
-                </div>
               </div>
 
               <div className="space-y-2 overflow-y-auto pr-1 flex-1">
@@ -665,11 +649,10 @@ const VideoAnalysis = () => {
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                     <button
                       onClick={() => setStatsAthleteId(null)}
-                      className={`rounded-lg border px-3 py-2 text-left transition-all text-sm ${
-                        statsAthleteId === null
+                      className={`rounded-lg border px-3 py-2 text-left transition-all text-sm ${statsAthleteId === null
                           ? 'border-primary bg-primary/10 text-foreground'
                           : 'border-border bg-card text-foreground hover:border-primary/60'
-                      }`}
+                        }`}
                     >
                       <div className="font-medium truncate">Todos</div>
                     </button>
@@ -677,11 +660,10 @@ const VideoAnalysis = () => {
                       <button
                         key={athlete.id}
                         onClick={() => setStatsAthleteId(athlete.id)}
-                        className={`rounded-lg border px-3 py-2 text-left transition-all text-sm ${
-                          statsAthleteId === athlete.id
+                        className={`rounded-lg border px-3 py-2 text-left transition-all text-sm ${statsAthleteId === athlete.id
                             ? 'border-primary bg-primary/10 text-foreground'
                             : 'border-border bg-card text-foreground hover:border-primary/60'
-                        }`}
+                          }`}
                       >
                         <div className="font-medium truncate">{athlete.name}</div>
                       </button>
@@ -744,11 +726,10 @@ const VideoAnalysis = () => {
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                     <button
                       onClick={() => setTacticsAthleteId(null)}
-                      className={`rounded-lg border px-3 py-2 text-left transition-all text-sm ${
-                        tacticsAthleteId === null
+                      className={`rounded-lg border px-3 py-2 text-left transition-all text-sm ${tacticsAthleteId === null
                           ? 'border-primary bg-primary/10 text-foreground'
                           : 'border-border bg-card text-foreground hover:border-primary/60'
-                      }`}
+                        }`}
                     >
                       <div className="font-medium truncate">Todos</div>
                     </button>
@@ -756,11 +737,10 @@ const VideoAnalysis = () => {
                       <button
                         key={athlete.id}
                         onClick={() => setTacticsAthleteId(athlete.id)}
-                        className={`rounded-lg border px-3 py-2 text-left transition-all text-sm ${
-                          tacticsAthleteId === athlete.id
+                        className={`rounded-lg border px-3 py-2 text-left transition-all text-sm ${tacticsAthleteId === athlete.id
                             ? 'border-primary bg-primary/10 text-foreground'
                             : 'border-border bg-card text-foreground hover:border-primary/60'
-                        }`}
+                          }`}
                       >
                         <div className="font-medium truncate">{athlete.name}</div>
                       </button>

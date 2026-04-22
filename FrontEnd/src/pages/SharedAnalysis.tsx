@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Clock, Info, LogIn, MapPin, ChevronRight, ArrowRight } from 'lucide-react';
+import { Clock, Info, LogIn, MapPin, ChevronRight, ArrowRight, BarChart3, FileText } from 'lucide-react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { usePlayerStore } from '@/stores/playerStore';
 import { YouTubePlayer } from '@/components/YouTubePlayer';
-import { formatTime } from '@/lib/helpers';
+import { formatTime, formatPct } from '@/lib/helpers';
 import type { Video, GameEvent } from '@/types';
 
 interface AthleteItem {
@@ -42,14 +42,27 @@ const SharedAnalysis = () => {
   const location = useLocation();
   const user = useAuthStore((s) => s.user);
   const { player } = usePlayerStore();
-  
+
   const [video, setVideo] = useState<Video | null>(null);
   const [events, setEvents] = useState<GameEvent[]>([]);
+  type TabKey = 'timeline' | 'stats';
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterCat, setFilterCat] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState<TabKey>('timeline');
+  const [statsAthleteId, setStatsAthleteId] = useState<string | null>(null);
 
   const isLiveMode = video?.context?.analysisMode === 'presencial' || video?.source.type === 'live';
+  const analysisType = video?.context?.analysisType;
+  const showStatisticalAnalysis = analysisType !== 'tática';
+  const athletes: AthleteItem[] = video?.context?.athletes || [];
+  const isMultiAthlete = ['meu_time', 'outro_time', 'multi atleta', 'time'].includes(video?.context?.scope || '');
+
+  useEffect(() => {
+    if (activeTab === 'stats' && !showStatisticalAnalysis) {
+      setActiveTab('timeline');
+    }
+  }, [activeTab, showStatisticalAnalysis]);
 
   useEffect(() => {
     if (!token) {
@@ -86,6 +99,57 @@ const SharedAnalysis = () => {
     if (filterCat === 'all') return true;
     return e.category === filterCat;
   });
+
+  const computeStatsForAthlete = (athleteId: string | null) => {
+    const filterEvents = athleteId
+      ? events.filter(e => e.category === 'stat' && e.athleteId === athleteId)
+      : events.filter(e => e.category === 'stat');
+
+    const agg = {
+      pts: 0, fgm: 0, fga: 0, ftm: 0, fta: 0,
+      '2ptm': 0, '2pta': 0, '3ptm': 0, '3pta': 0,
+      reb: 0, ass: 0, rb: 0, err: 0,
+    };
+
+    for (const event of filterEvents) {
+      const v = event.value || 1;
+      switch (event.actionType) {
+        case '1PT_MADE': agg.ftm += v; agg.fta += v; break;
+        case '1PT_MISS': agg.fta += v; break;
+        case '2PT_MADE': agg['2ptm'] += v; agg['2pta'] += v; break;
+        case '2PT_MISS': agg['2pta'] += v; break;
+        case '3PT_MADE': agg['3ptm'] += v; agg['3pta'] += v; break;
+        case '3PT_MISS': agg['3pta'] += v; break;
+        case 'REB': agg.reb += v; break;
+        case 'ASS': agg.ass += v; break;
+        case 'RB': agg.rb += v; break;
+        case 'ERR': agg.err += v; break;
+      }
+    }
+
+    agg.fgm = agg['2ptm'] + agg['3ptm'];
+    agg.fga = agg['2pta'] + agg['3pta'];
+    agg.pts = (agg.ftm * 1) + (agg['2ptm'] * 2) + (agg['3ptm'] * 3);
+
+    const safeDiv = (n: number, d: number) => d === 0 ? 0 : parseFloat((n / d).toFixed(4));
+
+    return {
+      aggregates: agg,
+      computed: {
+        fg_pct: safeDiv(agg.fgm, agg.fga),
+        two_pt_pct: safeDiv(agg['2ptm'], agg['2pta']),
+        three_pt_pct: safeDiv(agg['3ptm'], agg['3pta']),
+        ft_pct: safeDiv(agg.ftm, agg.fta),
+        eff: (agg.pts + agg.reb + agg.ass + agg.rb) - ((agg.fga - agg.fgm) + (agg.fta - agg.ftm) + agg.err),
+      }
+    };
+  };
+
+  const tabs: { key: TabKey; label: string; shortLabel: string; icon: typeof Clock }[] = [
+    { key: 'timeline', label: 'Timeline', shortLabel: 'Timeline', icon: Clock },
+    ...(showStatisticalAnalysis ? [{ key: 'stats' as TabKey, label: 'Box-Score', shortLabel: 'Box-Score', icon: BarChart3 }] : []),
+    ...(showTacticalAnalysis ? [{ key: 'tactics' as TabKey, label: 'Táticas', shortLabel: 'Táticas', icon: FileText as any }] : []),
+  ];
 
   // ── Loading state ──
   if (loading) {
@@ -138,7 +202,7 @@ const SharedAnalysis = () => {
         <div className="max-w-[1600px] mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
           {/* Left: Logo + App name */}
           <button
-            onClick={() => navigate(user ? '/dashboard' : '/login')}
+            onClick={() => navigate(user ? '/videos' : '/login')}
             className="flex items-center gap-2.5 shrink-0 group"
           >
             <img src="/logo.png" alt="PlayTrack" className="h-8 w-8 object-contain group-hover:scale-105 transition-transform" />
@@ -156,7 +220,7 @@ const SharedAnalysis = () => {
             </button>
           ) : (
             <button
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/videos')}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-elevated border border-border text-foreground text-sm font-medium hover:border-primary/50 hover:text-primary transition-all shrink-0"
             >
               <span>Voltar ao app</span>
@@ -220,7 +284,7 @@ const SharedAnalysis = () => {
                     <p className="text-foreground font-medium">{formatContextValue(video.context.gameType)}</p>
                   </div>
                 )}
-                
+
                 {video.context?.opponent && (
                   <div>
                     <p className="text-xs text-text-secondary mb-0.5">Adversário</p>
@@ -249,81 +313,203 @@ const SharedAnalysis = () => {
             </div>
           </div>
 
-          {/* ── Right: Timeline ── */}
+          {/* ── Right: Tabs ── */}
           <div className="flex-[2] min-w-0 flex flex-col min-h-0">
-            <div className="glass-card p-4 flex flex-col lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)]">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-3 shrink-0">
-                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-primary" />
-                  Timeline de Eventos
-                </h3>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                  {events.length} registro{events.length !== 1 ? 's' : ''}
-                </span>
-              </div>
-
-              {/* Filters */}
-              <div className="flex gap-1 mb-3 shrink-0">
-                {['all', 'stat', 'annotation'].map((c) => (
+            <div className="glass-card flex flex-col lg:sticky lg:top-20 lg:max-h-[calc(100dvh-6rem)]">
+              {/* Tabs */}
+              <div className="flex border-b border-border shrink-0">
+                {tabs.map((tab) => (
                   <button
-                    key={c}
-                    onClick={() => setFilterCat(c)}
-                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                      filterCat === c
-                        ? 'bg-primary/20 text-primary'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-elevated'
-                    }`}
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    className={`flex items-center gap-1 px-4 py-3 text-xs sm:gap-1.5 sm:px-4 sm:text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap ${activeTab === tab.key ? 'border-primary text-primary' : 'border-transparent text-text-secondary hover:text-foreground'
+                      }`}
                   >
-                    {c === 'all' ? 'Todos' : c === 'stat' ? 'Estatísticas' : 'Notas'}
+                    <tab.icon className="h-4 w-4" />
+                    <span className="hidden md:inline">{tab.label}</span>
+                    <span className="md:hidden">{tab.shortLabel}</span>
                   </button>
                 ))}
               </div>
 
-              {/* Events list */}
-              {filteredEvents.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center py-12">
-                  <p className="text-sm text-muted-foreground">Nenhum evento registrado</p>
-                </div>
-              ) : (
-                <div className="space-y-2 overflow-y-auto pr-1 flex-1 min-h-0">
-                  {filteredEvents.map((event) => (
-                    <div
-                      key={event._id}
-                      className="flex items-start gap-3 p-3 rounded-lg bg-elevated/50 border border-border/50 hover:border-primary/30 hover:bg-elevated transition-all cursor-pointer group"
-                      onClick={() => {
-                        if (!isLiveMode && player) {
-                          const target = Math.max(0, event.videoTimestampSeconds - 10);
-                          player.seekTo(target, true);
-                          player.playVideo();
-                        }
-                      }}
-                    >
-                      <span className="text-xs font-mono text-primary bg-primary/10 px-2 py-1 rounded shrink-0 mt-0.5">
-                        {formatTime(event.videoTimestampSeconds)}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        {event.category === 'annotation' ? (
-                          <p className="text-sm text-foreground">{event.note}</p>
-                        ) : (
-                          <div className="space-y-1">
-                            <p className="text-sm text-foreground font-medium">
-                              {event.actionType?.includes('MADE') ? '✓' : event.actionType?.includes('MISS') ? '✗' : ''} {event.actionType}
-                            </p>
-                          </div>
-                        )}
-                        {event.athleteName && (
-                          <span className="inline-flex items-center rounded-full bg-elevated px-2 py-0.5 text-[11px] text-text-secondary mt-1">
-                            {event.athleteName}
-                          </span>
-                        )}
-                        {event.note && event.category !== 'annotation' && (
-                          <p className="text-xs text-muted-foreground mt-1 italic">{event.note}</p>
-                        )}
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
+              {activeTab === 'timeline' && (
+                <div className="flex flex-col flex-1 min-h-0 p-4">
+                  <div className="flex items-center justify-between mb-3 shrink-0">
+                    <p className="text-sm text-text-secondary">Registros ({events.length})</p>
+                  </div>
+
+                  {filteredEvents.length === 0 ? (
+                    <div className="flex-1 flex items-center justify-center py-12">
+                      <p className="text-sm text-muted-foreground">Nenhum evento registrado</p>
                     </div>
-                  ))}
+                  ) : (
+                    <div className="space-y-2 overflow-y-auto pr-1 flex-1 min-h-0">
+                      {filteredEvents.map((event) => (
+                        <div
+                          key={event._id}
+                          className="flex items-start gap-3 p-3 rounded-lg bg-elevated/50 border border-border/50 hover:border-primary/30 hover:bg-elevated transition-all cursor-pointer group"
+                          onClick={() => {
+                            if (!isLiveMode && player) {
+                              const target = Math.max(0, event.videoTimestampSeconds - 10);
+                              player.seekTo(target, true);
+                              player.playVideo();
+                            }
+                          }}
+                        >
+                          <span className="text-xs font-mono text-primary bg-primary/10 px-2 py-1 rounded shrink-0 mt-0.5">
+                            {formatTime(event.videoTimestampSeconds)}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            {event.category === 'annotation' ? (
+                              <p className="text-sm text-foreground">{event.note}</p>
+                            ) : (
+                              <div className="space-y-1">
+                                <p className="text-sm text-foreground font-medium">
+                                  {event.actionType?.includes('MADE') ? '✓' : event.actionType?.includes('MISS') ? '✗' : ''} {event.actionType}
+                                </p>
+                              </div>
+                            )}
+                            {event.athleteName && (
+                              <span className="inline-flex items-center rounded-full bg-elevated px-2 py-0.5 text-[11px] text-text-secondary mt-1">
+                                {event.athleteName}
+                              </span>
+                            )}
+                            {event.note && event.category !== 'annotation' && (
+                              <p className="text-xs text-muted-foreground mt-1 italic">{event.note}</p>
+                            )}
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0 mt-1" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'tactics' && showTacticalAnalysis && (
+                <div className="flex flex-col flex-1 min-h-0 p-4 overflow-y-auto">
+                  {isMultiAthlete && (
+                    <div className="mb-4 pb-4 border-b border-border">
+                      <p className="text-xs font-medium text-text-secondary mb-2">Atleta</p>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        <button
+                          onClick={() => setStatsAthleteId(null)}
+                          className={`rounded-lg border px-3 py-2 text-left transition-all text-sm ${
+                            statsAthleteId === null
+                              ? 'border-primary bg-primary/10 text-foreground'
+                              : 'border-border bg-card text-foreground hover:border-primary/60'
+                          }`}
+                        >
+                          <div className="font-medium truncate">Todos</div>
+                        </button>
+                        {athletes.map((athlete) => (
+                          <button
+                            key={athlete.id}
+                            onClick={() => setStatsAthleteId(athlete.id)}
+                            className={`rounded-lg border px-3 py-2 text-left transition-all text-sm ${
+                              statsAthleteId === athlete.id
+                                ? 'border-primary bg-primary/10 text-foreground'
+                                : 'border-border bg-card text-foreground hover:border-primary/60'
+                            }`}
+                          >
+                            <div className="font-medium truncate">{athlete.name}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-2 flex-1 min-h-0 overflow-y-auto pr-1">
+                    {events.filter(e => e.category === 'annotation' && (!statsAthleteId || e.athleteId === statsAthleteId)).length === 0 ? (
+                      <p className="text-center text-muted-foreground text-sm py-8">Sem anotações táticas</p>
+                    ) : (
+                      events.filter(e => e.category === 'annotation' && (!statsAthleteId || e.athleteId === statsAthleteId)).slice().reverse().map((ev) => (
+                        <div
+                          key={ev._id}
+                          className="glass-card flex items-start gap-3 p-3 rounded-lg hover:bg-elevated/50 transition-colors cursor-pointer"
+                          onClick={() => {
+                            if (!isLiveMode && player) {
+                              const target = Math.max(0, ev.videoTimestampSeconds - 10);
+                              player.seekTo(target, true);
+                              player.playVideo();
+                            }
+                          }}
+                        >
+                          <span className="text-xs font-mono text-primary bg-primary/10 px-2 py-1 rounded shrink-0 mt-0.5">
+                            {formatTime(ev.videoTimestampSeconds)}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-foreground">{ev.note}</p>
+                            {ev.athleteName && (
+                              <span className="inline-flex items-center rounded-full bg-elevated px-2 py-0.5 text-[11px] text-text-secondary mt-1">
+                                {ev.athleteName}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'stats' && showStatisticalAnalysis && (
+                <div className="flex flex-col flex-1 min-h-0 p-4 overflow-y-auto">
+                  {isMultiAthlete && (
+                    <div className="mb-4 pb-4 border-b border-border">
+                      <p className="text-xs font-medium text-text-secondary mb-2">Atleta</p>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        <button
+                          onClick={() => setStatsAthleteId(null)}
+                          className={`rounded-lg border px-3 py-2 text-left transition-all text-sm ${statsAthleteId === null
+                              ? 'border-primary bg-primary/10 text-foreground'
+                              : 'border-border bg-card text-foreground hover:border-primary/60'
+                            }`}
+                        >
+                          <div className="font-medium truncate">Todos</div>
+                        </button>
+                        {athletes.map((athlete) => (
+                          <button
+                            key={athlete.id}
+                            onClick={() => setStatsAthleteId(athlete.id)}
+                            className={`rounded-lg border px-3 py-2 text-left transition-all text-sm ${statsAthleteId === athlete.id
+                                ? 'border-primary bg-primary/10 text-foreground'
+                                : 'border-border bg-card text-foreground hover:border-primary/60'
+                              }`}
+                          >
+                            <div className="font-medium truncate">{athlete.name}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {(() => {
+                    const computedStats = computeStatsForAthlete(statsAthleteId);
+                    const stats = computedStats;
+                    return (
+                      <table className="w-full text-sm">
+                        <tbody className="divide-y divide-border">
+                          {[
+                            ['Pontos', stats.aggregates.pts],
+                            ['Arremesso de Quadra', <span><span className="text-xs text-muted-foreground mr-1">({stats.aggregates.fgm}/{stats.aggregates.fga})</span> {formatPct(stats.computed.fg_pct)}</span>],
+                            ['Arremesso de 2 Pontos', <span><span className="text-xs text-muted-foreground mr-1">({stats.aggregates['2ptm']}/{stats.aggregates['2pta']})</span> {formatPct(stats.computed.two_pt_pct)}</span>],
+                            ['Arremesso de 3 Pontos', <span><span className="text-xs text-muted-foreground mr-1">({stats.aggregates['3ptm']}/{stats.aggregates['3pta']})</span> {formatPct(stats.computed.three_pt_pct)}</span>],
+                            ['Lances Livres', <span><span className="text-xs text-muted-foreground mr-1">({stats.aggregates.ftm}/{stats.aggregates.fta})</span> {formatPct(stats.computed.ft_pct)}</span>],
+                            ['Rebotes', stats.aggregates.reb],
+                            ['Assistências', stats.aggregates.ass],
+                            ['Roubos de Bola', stats.aggregates.rb],
+                            ['Erros', stats.aggregates.err],
+                            ['Eficiência', stats.computed.eff || 0],
+                          ].map(([label, value]) => (
+                            <tr key={label as string} className="py-1">
+                              <td className="py-2 text-text-secondary">{label}</td>
+                              <td className="py-2 text-foreground font-medium text-right">{value}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    );
+                  })()}
                 </div>
               )}
             </div>

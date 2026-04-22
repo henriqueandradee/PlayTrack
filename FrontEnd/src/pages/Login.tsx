@@ -23,7 +23,7 @@ const Login = () => {
       // ✅ Token agora é retornado na resposta, passamos para authStore
       login(res.data.data.user, res.data.data.token);
       const returnTo = searchParams.get('returnTo');
-      navigate(returnTo || '/dashboard');
+      navigate(returnTo || '/videos');
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {

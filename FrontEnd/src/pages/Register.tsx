@@ -55,7 +55,7 @@ const Register = () => {
       });
       // ✅ Token agora é retornado na resposta, passamos para authStore
       login(res.data.data.user, res.data.data.token);
-      navigate('/dashboard');
+      navigate('/videos');
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {

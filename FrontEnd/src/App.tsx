@@ -8,7 +8,7 @@ import { PrivateRoute } from '@/components/PrivateRoute';
 import AppLayout from '@/components/AppLayout';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
-import Dashboard from '@/pages/Dashboard';
+
 import Videos from '@/pages/Videos';
 import VideoAnalysis from '@/pages/VideoAnalysis';
 import SharedAnalysis from '@/pages/SharedAnalysis';
@@ -86,7 +86,7 @@ const App = () => {
             <Route path="/dmca" element={<DMCA />} />
             <Route path="/shared/:token" element={<SharedAnalysis />} />
             <Route element={<PrivateRoute><AppLayout /></PrivateRoute>}>
-              <Route path="/dashboard" element={<Dashboard />} />
+
               <Route path="/videos" element={<Videos />} />
               <Route path="/videos/:videoId" element={<VideoAnalysis />} />
               <Route path="/stats" element={<Stats />} />
