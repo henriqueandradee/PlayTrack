@@ -188,6 +188,65 @@ exports.getCareerStatsByAthlete = async (req, res, next) => {
 };
 
 /**
+ * GET /stats/athletes-from-games
+ * Returns unique athletes from completed games only.
+ */
+exports.getAthletesFromGames = async (req, res, next) => {
+  try {
+    const pipeline = [
+      // Get all stat events from the user
+      {
+        $match: {
+          userId: req.user._id,
+          deletedAt: null,
+          category: 'stat',
+          athleteId: { $ne: null },
+        },
+      },
+      // Join with videos to filter only meu_time + completed
+      {
+        $lookup: {
+          from: 'videos',
+          localField: 'videoId',
+          foreignField: '_id',
+          as: 'video',
+        },
+      },
+      { $unwind: '$video' },
+      {
+        $match: {
+          'video.deletedAt': null,
+          'video.analysisStatus': 'completed',
+          'video.context.scope': { $in: ['meu_time', 'eu', 'multi atleta', 'time'] },
+        },
+      },
+      // Group by athlete to get unique athletes
+      {
+        $group: {
+          _id: { athleteId: '$athleteId', athleteName: '$athleteName' },
+        },
+      },
+      // Sort by athlete name
+      {
+        $sort: { '_id.athleteName': 1 },
+      },
+    ];
+
+    const Event = require('../../models/Event');
+    const results = await Event.aggregate(pipeline);
+
+    const athletes = results.map((item) => ({
+      id: item._id.athleteId,
+      name: item._id.athleteName,
+    }));
+
+    return success(res, athletes);
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
  * GET /stats/evolution?athleteId=xyz
  * Returns per-game stats for the evolution chart.
  * If athleteId is provided, returns stats for that athlete across games.

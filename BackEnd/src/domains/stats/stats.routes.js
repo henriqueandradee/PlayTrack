@@ -23,6 +23,9 @@ router.get('/career', statsLimiter, statsController.getCareerStats);
 // GET /stats/career/athletes — career stats grouped by athlete
 router.get('/career/athletes', statsLimiter, statsController.getCareerStatsByAthlete);
 
+// GET /stats/athletes-from-games — unique athletes from completed games
+router.get('/athletes-from-games', statsLimiter, statsController.getAthletesFromGames);
+
 // GET /stats/evolution — per-game stats for evolution chart
 router.get('/evolution', statsLimiter, statsController.getEvolutionStats);
 

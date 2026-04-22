@@ -34,7 +34,7 @@ app.use(requestId);
 // Em desenvolvimento, permite localhost. Em produção, usa domínios específicos da variável de ambiente
 const allowedOrigins = config.cors.origin === '*'
   ? (config.env === 'development'
-      ? ['http://localhost:3000', 'http://localhost:8080', 'http://localhost:5173'] // Vite, etc.
+      ? ['http://localhost:3000', 'http://localhost:8080', 'http://localhost:5173', 'http://localhost:8086'] // Vite, etc.
       : []) // Produção NÃO deve usar wildcard com credentials
   : config.cors.origin.split(',').map((o) => o.trim());
 
