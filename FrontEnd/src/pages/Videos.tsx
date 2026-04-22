@@ -30,6 +30,7 @@ const Videos = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [modalOpen, setModalOpen] = useState(false);
+  const [videoToDelete, setVideoToDelete] = useState<string | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   // States para Match
@@ -196,16 +197,15 @@ const Videos = () => {
     }
   };
 
-  const handleDeleteVideo = async (videoId: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!window.confirm('Tem certeza que deseja apagar esta partida? Todos os registros associados serão perdidos permanentemente.')) return;
+  const handleDeleteVideo = async () => {
+    if (!videoToDelete) return;
     
     try {
-      await api.delete(`/videos/${videoId}`);
-      setVideos((prev) => prev.filter((v) => v._id !== videoId));
+      await api.delete(`/videos/${videoToDelete}`);
+      setVideos((prev) => prev.filter((v) => v._id !== videoToDelete));
       updateUser({ usage: { videoCount: Math.max(0, (user?.usage.videoCount ?? 1) - 1) } });
       toast.success('Partida apagada com sucesso!');
+      setVideoToDelete(null);
     } catch (err: any) {
       toast.error(getErrorMessage(err));
     }
@@ -298,7 +298,11 @@ const Videos = () => {
                   <div className="flex items-start justify-between">
                     <h3 className="font-medium text-foreground truncate flex-1 pr-2">{video.title}</h3>
                     <button
-                      onClick={(e) => handleDeleteVideo(video._id, e)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setVideoToDelete(video._id);
+                      }}
                       className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
                       title="Apagar partida"
                     >
@@ -630,6 +634,35 @@ const Videos = () => {
       )}
 
       <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} message="Você atingiu o limite de 3 partidas no plano gratuito." />
+
+      {/* Delete Confirmation Modal */}
+      {videoToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-card w-full max-w-sm rounded-xl p-6 shadow-2xl border border-border animate-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-bold text-foreground mb-2 flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-destructive" />
+              Apagar partida
+            </h3>
+            <p className="text-sm text-text-secondary mb-6">
+              Tem certeza? Todos os registros e anotações desta partida serão perdidos. Esta ação não pode ser desfeita.
+            </p>
+            <div className="flex gap-3 justify-end mt-2">
+              <button
+                onClick={() => setVideoToDelete(null)}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-foreground hover:bg-elevated transition-colors border border-border"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteVideo}
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors"
+              >
+                Sim, apagar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
