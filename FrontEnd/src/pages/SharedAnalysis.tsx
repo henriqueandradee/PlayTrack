@@ -45,7 +45,7 @@ const SharedAnalysis = () => {
 
   const [video, setVideo] = useState<Video | null>(null);
   const [events, setEvents] = useState<GameEvent[]>([]);
-  type TabKey = 'timeline' | 'stats';
+  type TabKey = 'timeline' | 'stats' | 'tactics';
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterCat, setFilterCat] = useState<string>('all');
@@ -55,6 +55,7 @@ const SharedAnalysis = () => {
   const isLiveMode = video?.context?.analysisMode === 'presencial' || video?.source.type === 'live';
   const analysisType = video?.context?.analysisType;
   const showStatisticalAnalysis = analysisType !== 'tática';
+  const showTacticalAnalysis = analysisType !== 'estatística';
   const athletes: AthleteItem[] = video?.context?.athletes || [];
   const isMultiAthlete = ['meu_time', 'outro_time', 'multi atleta', 'time'].includes(video?.context?.scope || '');
 
