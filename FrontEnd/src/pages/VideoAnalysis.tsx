@@ -25,10 +25,10 @@ const actionButtons: { type: ActionType; label: string; group: string; style: st
   { type: '3PT_MISS', label: '✗ 3PT', group: 'shots', style: 'btn-action-miss' },
   { type: '1PT_MADE', label: '✓ 1PT', group: 'shots', style: 'btn-action-made' },
   { type: '1PT_MISS', label: '✗ 1PT', group: 'shots', style: 'btn-action-miss' },
-  { type: 'REB', label: 'REB', group: 'other', style: 'btn-action-made' },
-  { type: 'ASS', label: 'ASS', group: 'other', style: 'btn-action-made' },
-  { type: 'RB', label: 'RB', group: 'other', style: 'btn-action-made' },
-  { type: 'ERR', label: 'ERR', group: 'other', style: 'btn-action-miss' },
+  { type: 'REB', label: 'Reb', group: 'other', style: 'btn-action-made' },
+  { type: 'ASS', label: 'Ass', group: 'other', style: 'btn-action-made' },
+  { type: 'RB', label: 'Rb', group: 'other', style: 'btn-action-made' },
+  { type: 'ERR', label: 'Err', group: 'other', style: 'btn-action-miss' },
 ];
 
 const contextValueLabels: Record<string, string> = {
@@ -40,6 +40,8 @@ const contextValueLabels: Record<string, string> = {
   'multi athlete': 'Vários atletas',
   'multi atleta': 'Vários atletas',
   team: 'Time completo',
+  meu_time: 'Meu time',
+  outro_time: 'Outro time',
   tactical: 'Tática',
   statistical: 'Estatística',
   both: 'Ambos',
@@ -679,13 +681,13 @@ const VideoAnalysis = () => {
                     <tbody className="divide-y divide-border">
                       {[
                         ['Pontos', stats.aggregates.pts],
-                        ['Arremesso de Quadra', <span><span className="text-xs text-muted-foreground mr-1">({stats.aggregates.fgm}/{stats.aggregates.fga})</span> {formatPct(stats.computed.fg_pct)}</span>],
-                        ['Arremesso de 2 Pontos', <span><span className="text-xs text-muted-foreground mr-1">({stats.aggregates['2ptm']}/{stats.aggregates['2pta']})</span> {formatPct(stats.computed.two_pt_pct)}</span>],
-                        ['Arremesso de 3 Pontos', <span><span className="text-xs text-muted-foreground mr-1">({stats.aggregates['3ptm']}/{stats.aggregates['3pta']})</span> {formatPct(stats.computed.three_pt_pct)}</span>],
-                        ['Lances Livres', <span><span className="text-xs text-muted-foreground mr-1">({stats.aggregates.ftm}/{stats.aggregates.fta})</span> {formatPct(stats.computed.ft_pct)}</span>],
+                        ['Arremesso de quadra', <span><span className="text-xs text-muted-foreground mr-1">({stats.aggregates.fgm}/{stats.aggregates.fga})</span> {formatPct(stats.computed.fg_pct)}</span>],
+                        ['Arremesso de 2 pontos', <span><span className="text-xs text-muted-foreground mr-1">({stats.aggregates['2ptm']}/{stats.aggregates['2pta']})</span> {formatPct(stats.computed.two_pt_pct)}</span>],
+                        ['Arremesso de 3 pontos', <span><span className="text-xs text-muted-foreground mr-1">({stats.aggregates['3ptm']}/{stats.aggregates['3pta']})</span> {formatPct(stats.computed.three_pt_pct)}</span>],
+                        ['Lances livres', <span><span className="text-xs text-muted-foreground mr-1">({stats.aggregates.ftm}/{stats.aggregates.fta})</span> {formatPct(stats.computed.ft_pct)}</span>],
                         ['Rebotes', stats.aggregates.reb],
                         ['Assistências', stats.aggregates.ass],
-                        ['Roubos de Bola', stats.aggregates.rb],
+                        ['Roubos de bola', stats.aggregates.rb],
                         ['Erros', stats.aggregates.err],
                         ['Eficiência', stats.computed.eff || 0],
                       ].map(([label, value]) => (

@@ -290,7 +290,7 @@ const Videos = () => {
                     ? <img src={thumb} alt={video.title} className="w-full h-full object-cover" />
                     : <div className="flex flex-col items-center gap-2 text-muted-foreground">
                         <MapPin className="h-8 w-8" />
-                        <span className="text-xs">Análise Presencial</span>
+                        <span className="text-xs">Análise presencial</span>
                       </div>
                   }
                 </div>
@@ -414,26 +414,26 @@ const Videos = () => {
               <div>
                 <label className="block text-sm font-medium text-text-secondary mb-2">Quem analisar? *</label>
                 <div className="grid grid-cols-2 gap-3">
-                  {[{value: 'meu_time', label: 'Meu Time'}, {value: 'outro_time', label: 'Outro Time'}].map((opt) => (
+                  {[{value: 'meu_time', label: 'Meu time'}, {value: 'outro_time', label: 'Outro time'}].map((opt) => (
                     <button
                       key={opt.value}
                       type="button"
                       onClick={() => {
-                        setScope(opt.value as 'meu_time' | 'outro_time');
-                        setAthletes([]);
-                        setNewAthleteName('');
-                      }}
-                      className={`px-4 py-2.5 rounded-lg font-medium transition-all ${
-                        scope === opt.value
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-elevated border border-border text-foreground hover:border-primary'
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
+                          setScope(opt.value);
+                          setAthletes([]);
+                          setNewAthleteName('');
+                        }}
+                        className={`px-4 py-2.5 rounded-lg font-medium transition-all ${
+                          scope === opt.value
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-elevated border border-border text-foreground hover:border-primary'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
               {/* Atletas (shown for both scopes once selected) */}
               {scope && (
