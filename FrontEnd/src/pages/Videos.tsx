@@ -185,12 +185,13 @@ const Videos = () => {
       setModalOpen(false);
       resetForm();
       
-      const { stepIndex, setStepIndex, run } = useTourStore.getState();
-      if (run && stepIndex === 3) setStepIndex(4);
-      
       // Redirecionar para análise da partida
+      const { stepIndex, setStepIndex, run } = useTourStore.getState();
       setTimeout(() => {
         navigate(`/videos/${videoId}`);
+        if (run && stepIndex === 3) {
+          setTimeout(() => setStepIndex(4), 500);
+        }
       }, 500);
     } catch (err: any) {
       setCreateMatchError(getErrorMessage(err));
