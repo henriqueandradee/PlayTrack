@@ -476,12 +476,20 @@ const Videos = () => {
                     <div className="mb-3">
                       <p className="text-xs text-text-secondary mb-1.5">Gerenciar roster salvo (× para remover):</p>
                       <div className="flex flex-wrap gap-1.5">
-                        {roster.map((r) => (
+                        {roster
+                          .filter((r) => !athletes.some((a) => a.id === r.id))
+                          .map((r) => (
                           <span
                             key={r.id}
                             className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full bg-primary/20 text-primary text-xs font-medium border border-primary/30"
                           >
-                            {r.name}
+                            <button
+                              type="button"
+                              onClick={() => setAthletes([...athletes, r])}
+                              className="hover:underline text-left outline-none"
+                            >
+                              {r.name}
+                            </button>
                             <button
                               type="button"
                               onClick={() => {
@@ -490,8 +498,8 @@ const Videos = () => {
                                 setAthletes(athletes.filter((a) => a.id !== r.id));
                                 api.put('/auth/roster', { roster: updatedRoster }).catch(() => {});
                               }}
-                              className="ml-0.5 p-0.5 rounded-full hover:bg-destructive/20 hover:text-destructive transition-colors"
-                              title={`Remover ${r.name} dos salvos`}
+                              className="ml-0.5 p-0.5 rounded-full hover:bg-destructive/20 hover:text-destructive transition-colors outline-none cursor-pointer"
+                              title={`Remover ${r.name} dos salvos permanentemente`}
                             >
                               <X className="w-3 h-3" />
                             </button>

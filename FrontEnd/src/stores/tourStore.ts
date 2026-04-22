@@ -26,6 +26,7 @@ export const useTourStore = create<TourState>()(
     }),
     {
       name: 'playtrack-tour-storage',
+      partialize: (state) => ({ hasSeenTour: state.hasSeenTour }),
     }
   )
 );
