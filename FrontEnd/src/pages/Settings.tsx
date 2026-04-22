@@ -5,13 +5,13 @@ import { useAuthStore } from '@/stores/authStore';
 import api from '@/lib/api';
 import { PlanBadge } from '@/components/PlanBadge';
 import { PricingModal } from '@/components/PricingModal';
-import { useTutorial } from '@/components/OnboardingTutorial';
+import { useTourStore } from '@/stores/tourStore';
 
 const Settings = () => {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const [pricingOpen, setPricingOpen] = useState(false);
-  const { startTutorial } = useTutorial();
+  const startTutorial = useTourStore((s) => s.startTour);
 
   const handleLogout = async () => {
     try {

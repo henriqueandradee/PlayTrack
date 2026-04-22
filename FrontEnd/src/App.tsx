@@ -34,7 +34,7 @@ const IndexRedirect = () => {
   // Aguarda hydrate antes de redirecionar
   if (!hydrated) return null;
   
-  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <Landing />;
+  return isAuthenticated ? <Navigate to="/videos" replace /> : <Landing />;
 };
 
 const App = () => {

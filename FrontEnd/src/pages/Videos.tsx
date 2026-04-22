@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { useTourStore } from '@/stores/tourStore';
 import { Link, useNavigate } from 'react-router-dom';
 import { Plus, Search, Video as VideoIcon, X, MapPin, Trash2 } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
@@ -43,14 +44,28 @@ const Videos = () => {
   const [createMatchErrors, setCreateMatchErrors] = useState<string[]>([]);
   const [creatingMatch, setCreatingMatch] = useState(false);
   const [roster, setRoster] = useState<Athlete[]>([]);
+  const [gameAthletes, setGameAthletes] = useState<Athlete[]>([]);
 
   const canAddVideo = user?.plan === 'pro' || (user?.usage.videoCount ?? 0) < 5;
 
   useEffect(() => {
     fetchVideos();
-    // Fetch roster
+    // Fetch roster for management
     api.get('/auth/roster').then((res) => setRoster(res.data.data || [])).catch(() => {});
-  }, []);
+    // Fetch athletes from completed games for suggestions
+    api.get('/stats/athletes-from-games').then((res) => setGameAthletes(res.data.data || [])).catch(() => {});
+
+    // Listen for custom event from Joyride tour
+    const handleTourOpenModal = () => {
+      if (canAddVideo) {
+        setModalOpen(true);
+      } else {
+        setUpgradeOpen(true);
+      }
+    };
+    window.addEventListener('tour:open-modal', handleTourOpenModal);
+    return () => window.removeEventListener('tour:open-modal', handleTourOpenModal);
+  }, [canAddVideo]);
 
   const fetchVideos = async () => {
     try {
@@ -170,6 +185,9 @@ const Videos = () => {
       setModalOpen(false);
       resetForm();
       
+      const { stepIndex, setStepIndex, run } = useTourStore.getState();
+      if (run && stepIndex === 3) setStepIndex(4);
+      
       // Redirecionar para análise da partida
       setTimeout(() => {
         navigate(`/videos/${videoId}`);
@@ -208,7 +226,14 @@ const Videos = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <h1 className="text-2xl font-bold text-foreground">Minhas Partidas</h1>
         <button
-          onClick={() => canAddVideo ? setModalOpen(true) : setUpgradeOpen(true)}
+          id="tour-new-match"
+          onClick={() => {
+            if (canAddVideo) {
+              setModalOpen(true);
+            } else {
+              setUpgradeOpen(true);
+            }
+          }}
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-all"
         >
           <Plus className="h-4 w-4" /> Nova Partida
@@ -421,12 +446,12 @@ const Videos = () => {
                       : 'Adicione os jogadores do time adversário para esta partida.'}
                   </p>
 
-                  {/* Roster suggestions for meu_time */}
-                  {scope === 'meu_time' && roster.length > 0 && (
+                  {/* Game athletes suggestions for meu_time */}
+                  {scope === 'meu_time' && gameAthletes.length > 0 && (
                     <div className="mb-3">
-                      <p className="text-xs text-text-secondary mb-1.5">Atletas salvos (clique para adicionar, × para remover):</p>
+                      <p className="text-xs text-text-secondary mb-1.5">Atletas de jogos finalizados (clique para adicionar):</p>
                       <div className="flex flex-wrap gap-1.5">
-                        {roster
+                        {gameAthletes
                           .filter((r) => !athletes.some((a) => a.id === r.id))
                           .map((r) => (
                             <span
@@ -440,22 +465,38 @@ const Videos = () => {
                               >
                                 + {r.name}
                               </button>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  const updatedRoster = roster.filter((a) => a.id !== r.id);
-                                  setRoster(updatedRoster);
-                                  setAthletes(athletes.filter((a) => a.id !== r.id));
-                                  api.put('/auth/roster', { roster: updatedRoster }).catch(() => {});
-                                }}
-                                className="ml-0.5 p-0.5 rounded-full hover:bg-destructive/20 hover:text-destructive transition-colors"
-                                title={`Remover ${r.name} dos salvos`}
-                              >
-                                <X className="w-3 h-3" />
-                              </button>
                             </span>
                           ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Roster management for meu_time */}
+                  {scope === 'meu_time' && roster.length > 0 && (
+                    <div className="mb-3">
+                      <p className="text-xs text-text-secondary mb-1.5">Gerenciar roster salvo (× para remover):</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {roster.map((r) => (
+                          <span
+                            key={r.id}
+                            className="inline-flex items-center gap-1 pl-2.5 pr-1 py-1 rounded-full bg-primary/20 text-primary text-xs font-medium border border-primary/30"
+                          >
+                            {r.name}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updatedRoster = roster.filter((a) => a.id !== r.id);
+                                setRoster(updatedRoster);
+                                setAthletes(athletes.filter((a) => a.id !== r.id));
+                                api.put('/auth/roster', { roster: updatedRoster }).catch(() => {});
+                              }}
+                              className="ml-0.5 p-0.5 rounded-full hover:bg-destructive/20 hover:text-destructive transition-colors"
+                              title={`Remover ${r.name} dos salvos`}
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        ))}
                       </div>
                     </div>
                   )}
@@ -570,6 +611,7 @@ const Videos = () => {
                   Cancelar
                 </button>
                 <button
+                  id="tour-create-match-submit"
                   type="submit"
                   disabled={creatingMatch}
                   className="flex-1 px-4 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium hover:opacity-90 transition-all disabled:opacity-50"

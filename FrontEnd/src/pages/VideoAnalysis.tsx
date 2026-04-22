@@ -9,6 +9,7 @@ import { ShareAnalysisModal } from '@/components/ShareAnalysisModal';
 import { UpgradeModal } from '@/components/UpgradeModal';
 import { formatTime, formatPct } from '@/lib/helpers';
 import { exportBoxScorePDF, exportTacticalPDF } from '@/lib/exportPdf';
+import { useTourStore } from '@/stores/tourStore';
 import { toast } from 'sonner';
 import type { Video, GameEvent, ActionType, VideoStats } from '@/types';
 
@@ -354,6 +355,7 @@ const VideoAnalysis = () => {
         <div className="flex gap-2">
           {!isLiveMode && video.source.type === 'youtube' && (
             <button
+              id="tour-share-btn"
               onClick={() => setShareModalOpen(true)}
               className="flex items-center justify-center gap-2 text-sm px-4 py-1.5 rounded-lg font-medium transition-colors bg-elevated border border-border text-text-secondary hover:text-foreground hover:border-primary/50"
               title="Compartilhar análise"
@@ -430,7 +432,7 @@ const VideoAnalysis = () => {
           </div>
 
           {/* Analysis panels */}
-          <div className="space-y-3 shrink-0">
+          <div id="tour-actions-panel" className="space-y-3 shrink-0">
             {/* Attribution Panel */}
             {hasAthletes && (
               <div className="glass-card p-3">

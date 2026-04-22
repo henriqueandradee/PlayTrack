@@ -4,12 +4,12 @@ import { toast } from 'sonner';
 /* ─── Shared helpers ─── */
 
 const COLORS = {
-  bg: [15, 32, 53] as [number, number, number],
-  card: [22, 44, 71] as [number, number, number],
-  border: [42, 65, 94] as [number, number, number],
-  primary: [96, 135, 235] as [number, number, number],
-  text: [220, 228, 238] as [number, number, number],
-  muted: [140, 155, 175] as [number, number, number],
+  bg: [255, 255, 255] as [number, number, number],
+  card: [248, 250, 252] as [number, number, number],
+  border: [224, 227, 231] as [number, number, number],
+  primary: [36, 99, 235] as [number, number, number],
+  text: [8, 8, 8] as [number, number, number],
+  muted: [107, 114, 128] as [number, number, number],
   white: [255, 255, 255] as [number, number, number],
 };
 
@@ -24,7 +24,7 @@ const addHeader = (doc: jsPDF, title: string, subtitle?: string) => {
   doc.rect(0, 0, w, 3, 'F');
 
   // Title
-  doc.setTextColor(...COLORS.white);
+  doc.setTextColor(...COLORS.text);
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
   doc.text(title, 14, 18);
@@ -116,7 +116,7 @@ export const exportBoxScorePDF = (
       ];
 
       // Row background
-      doc.setFillColor(...(bold ? COLORS.card : COLORS.bg));
+      doc.setFillColor(...(bold ? COLORS.primary : COLORS.bg));
       doc.rect(14, y - 1, w - 28, 7, 'F');
 
       // Border
@@ -197,7 +197,7 @@ export const exportTacticalPDF = (title: string, annotations: TacticalEvent[]) =
       }
 
       // Time badge
-      doc.setFillColor(...COLORS.card);
+      doc.setFillColor(...COLORS.primary);
       doc.roundedRect(14, y, 18, 6, 1, 1, 'F');
       doc.setFontSize(7);
       doc.setFont('helvetica', 'bold');
@@ -271,7 +271,7 @@ export const exportEvolutionPDF = async (elementId: string) => {
     const canvas = await html2canvas(element, {
       scale: 2,
       useCORS: true,
-      backgroundColor: '#0f2035',
+      backgroundColor: '#ffffff',
       logging: false,
     });
     const imgData = canvas.toDataURL('image/png');

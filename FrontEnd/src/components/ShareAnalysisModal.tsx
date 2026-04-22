@@ -55,13 +55,13 @@ export const ShareAnalysisModal = ({ videoId, isOpen, onClose }: ShareAnalysisMo
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-      <div className="glass-card p-6 max-w-md w-full mx-4 animate-fade-in">
+      <div className="glass-card p-6 max-w-md w-full mx-4 animate-fade-in shadow-medium hover-lift">
         <div className="flex justify-between items-start mb-4">
           <div className="flex items-center gap-2">
             <Share2 className="h-5 w-5 text-primary" />
             <h3 className="text-lg font-semibold text-foreground">Compartilhar Análise</h3>
           </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-all duration-200 hover:bg-accent/50 rounded p-1">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -85,13 +85,13 @@ export const ShareAnalysisModal = ({ videoId, isOpen, onClose }: ShareAnalysisMo
               />
               <button
                 onClick={handleCopy}
-                className="p-2 hover:bg-primary/10 rounded transition-colors"
+                className="p-2 hover:bg-primary/15 rounded-lg transition-all duration-200 hover:shadow-sm"
                 title="Copiar link"
               >
                 {copied ? (
                   <Check size={18} className="text-success" />
                 ) : (
-                  <Copy size={18} className="text-muted-foreground" />
+                  <Copy size={18} className="text-muted-foreground hover:text-primary" />
                 )}
               </button>
             </div>

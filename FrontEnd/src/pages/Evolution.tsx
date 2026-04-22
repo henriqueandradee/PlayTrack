@@ -63,9 +63,9 @@ const Evolution = () => {
   const [selectedStats, setSelectedStats] = useState<Set<string>>(new Set(DEFAULT_STATS));
   const [loading, setLoading] = useState(true);
 
-  // Fetch roster for athlete list
+  // Fetch athletes from completed games only
   useEffect(() => {
-    api.get('/auth/roster')
+    api.get('/stats/athletes-from-games')
       .then((res) => setAthletes(
         (res.data.data || []).map((a: { id: string; name: string }) => ({
           athleteId: a.id,
@@ -131,64 +131,66 @@ const Evolution = () => {
 
       <div className="flex flex-col lg:flex-row gap-4 flex-1 min-h-0">
         {/* Left: Filters */}
-        <div className="lg:w-64 shrink-0 space-y-4">
-          {/* Subject selector */}
-          <div className="glass-card p-4">
-            <p className="text-sm font-semibold text-foreground mb-3">Quem analisar</p>
-            <div className="space-y-1.5">
-              <button
-                onClick={() => setSelectedSubject('team')}
-                className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                  selectedSubject === 'team'
-                    ? 'bg-primary/10 text-primary border border-primary/30'
-                    : 'text-text-secondary hover:text-foreground hover:bg-elevated border border-transparent'
-                }`}
-              >
-                Time
-              </button>
-              {athletes.map((a) => (
+        <div className="lg:w-96 shrink-0">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Subject selector */}
+            <div className="glass-card p-4">
+              <p className="text-sm font-semibold text-foreground mb-3">Quem analisar</p>
+              <div className="space-y-1.5">
                 <button
-                  key={a.athleteId}
-                  onClick={() => setSelectedSubject(a.athleteId)}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all truncate ${
-                    selectedSubject === a.athleteId
+                  onClick={() => setSelectedSubject('team')}
+                  className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    selectedSubject === 'team'
                       ? 'bg-primary/10 text-primary border border-primary/30'
                       : 'text-text-secondary hover:text-foreground hover:bg-elevated border border-transparent'
                   }`}
                 >
-                  {a.athleteName}
+                  Time
                 </button>
-              ))}
-              {athletes.length === 0 && (
-                <p className="text-xs text-muted-foreground italic px-3">Nenhum atleta salvo</p>
-              )}
-            </div>
-          </div>
-
-          {/* Stat selector */}
-          <div className="glass-card p-4">
-            <p className="text-sm font-semibold text-foreground mb-3">Estatísticas</p>
-            <div className="space-y-1">
-              {STAT_OPTIONS.map((opt) => {
-                const isActive = selectedStats.has(opt.key);
-                return (
+                {athletes.map((a) => (
                   <button
-                    key={opt.key}
-                    onClick={() => toggleStat(opt.key)}
-                    className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                      isActive
-                        ? 'bg-elevated text-foreground'
-                        : 'text-muted-foreground hover:text-text-secondary hover:bg-elevated/50'
+                    key={a.athleteId}
+                    onClick={() => setSelectedSubject(a.athleteId)}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all truncate ${
+                      selectedSubject === a.athleteId
+                        ? 'bg-primary/10 text-primary border border-primary/30'
+                        : 'text-text-secondary hover:text-foreground hover:bg-elevated border border-transparent'
                     }`}
                   >
-                    <div
-                      className="w-2.5 h-2.5 rounded-full shrink-0 transition-opacity"
-                      style={{ backgroundColor: opt.color, opacity: isActive ? 1 : 0.3 }}
-                    />
-                    {opt.label}
+                    {a.athleteName}
                   </button>
-                );
-              })}
+                ))}
+                {athletes.length === 0 && (
+                  <p className="text-xs text-muted-foreground italic px-3">Nenhum atleta salvo</p>
+                )}
+              </div>
+            </div>
+
+            {/* Stat selector */}
+            <div className="glass-card p-4">
+              <p className="text-sm font-semibold text-foreground mb-3">Estatísticas</p>
+              <div className="space-y-1">
+                {STAT_OPTIONS.map((opt) => {
+                  const isActive = selectedStats.has(opt.key);
+                  return (
+                    <button
+                      key={opt.key}
+                      onClick={() => toggleStat(opt.key)}
+                      className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        isActive
+                          ? 'bg-elevated text-foreground'
+                          : 'text-muted-foreground hover:text-text-secondary hover:bg-elevated/50'
+                      }`}
+                    >
+                      <div
+                        className="w-2.5 h-2.5 rounded-full shrink-0 transition-opacity"
+                        style={{ backgroundColor: opt.color, opacity: isActive ? 1 : 0.3 }}
+                      />
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>

@@ -1,287 +1,241 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { X, ArrowRight, ArrowLeft, Play, Target, BarChart3, Share2, Video, Users } from 'lucide-react';
+import { useEffect } from 'react';
+import { Joyride, CallBackProps, STATUS, Step, TooltipRenderProps } from 'react-joyride';
+import { useTourStore } from '@/stores/tourStore';
+import { useAuthStore } from '@/stores/authStore';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { X, Play, ArrowRight, ArrowLeft } from 'lucide-react';
+import { toast } from 'sonner';
 
-/* ─── Step definitions ─── */
-interface TutorialStep {
-  id: string;
-  title: string;
-  description: string;
-  icon: React.ElementType;
-  /** Optional route the user is navigated to before showing the step */
-  route?: string;
-  /** CSS selector of the element to spotlight (null = centered modal) */
-  spotlightSelector?: string;
-  /** Position of the tooltip relative to the spotlight */
-  tooltipPosition?: 'top' | 'bottom' | 'left' | 'right';
-}
-
-const STEPS: TutorialStep[] = [
+const STEPS: Step[] = [
   {
-    id: 'welcome',
-    title: 'Bem-vindo ao PlayTrack.',
-    description:
-      'Vamos te mostrar como analisar seus jogos e acompanhar a evolução dos seus atletas. Em poucos passos você estará pronto!',
-    icon: Play,
+    target: 'body',
+    content: 'Bem-vindo ao PlayTrack! Vamos te guiar pelo essencial: criar uma partida, marcar ações e compartilhar a análise.',
+    placement: 'center',
+    disableBeacon: true,
+    title: 'Boas vindas',
   },
   {
-    id: 'dashboard',
-    title: 'Este é o seu Painel',
-    description:
-      'Aqui você vê um resumo das suas estatísticas de carreira e os jogos recentes. É o ponto de partida do seu dia a dia no PlayTrack.',
-    icon: Target,
-    route: '/dashboard',
+    target: '#tour-nav-videos',
+    content: 'Tudo começa aqui. Clique no menu lateral ou avance para a tela de Jogos.',
+    placement: 'right',
+    disableOverlayClose: true,
+    disableBeacon: true,
+    title: 'Acesse seus jogos',
   },
   {
-    id: 'videos',
-    title: 'Meus Jogos',
-    description:
-      'Aqui ficam todas as suas análises. Crie uma nova partida clicando em "Nova Partida", cole o link do YouTube (ou inicie presencial) e comece a marcar jogadas.',
-    icon: Video,
-    route: '/videos',
+    target: '#tour-new-match',
+    content: 'Para começar uma nova análise, avance para abrir o formulário.',
+    placement: 'bottom',
+    disableOverlayClose: true,
+    disableBeacon: true,
+    title: 'Criar Partida',
   },
   {
-    id: 'analysis',
-    title: 'Análise em Tempo Real',
-    description:
-      'Durante a análise, registre arremessos, rebotes, assistências e erros sincronizados ao vídeo. Cada ação gera estatísticas automáticas instantaneamente.',
-    icon: Users,
+    target: '#tour-create-match-submit',
+    content: 'Preencha os detalhes (tente colar um link de um vídeo do YouTube!) e clique nativamente em "Criar Partida" para enviar.',
+    placement: 'top',
+    disableOverlayClose: true,
+    hideFooter: true,
+    disableBeacon: true,
+    spotlightClicks: true,
+    title: 'Salvar',
   },
   {
-    id: 'stats',
-    title: 'Estatísticas de Carreira',
-    description:
-      'Veja as estatísticas agregadas do seu time e filtre por atleta individual. Acompanhe médias e totais para tomar decisões baseadas em dados.',
-    icon: BarChart3,
-    route: '/stats',
+    target: '#tour-actions-panel',
+    content: 'Com a partida criada, o painel central é usado para registrar os arremessos e ações enquanto o vídeo rola.',
+    placement: 'left',
+    disableBeacon: true,
+    title: 'Marcar Ações',
   },
   {
-    id: 'share',
-    title: 'Compartilhe e Evolua',
-    description:
-      'Após finalizar uma análise, gere um link para compartilhar com seus atletas. Eles poderão revisar cada jogada e entender como evoluir.',
-    icon: Share2,
-  },
-  {
-    id: 'done',
-    title: 'Tudo pronto!',
-    description:
-      'Agora é com você. Crie sua primeira partida e transforme seus jogos em evolução real. Você pode rever este tutorial a qualquer momento em Configurações.',
-    icon: Target,
-  },
+    target: '#tour-share-btn',
+    content: 'Quando terminar sua análise, gere o link mágico e compartilhe tudo com seu time de modo fácil e interativo!',
+    placement: 'bottom',
+    disableBeacon: true,
+    title: 'Compartilhar',
+  }
 ];
 
-const STORAGE_KEY = 'playtrack_tutorial_seen';
+const CustomTooltip = ({
+  index,
+  step,
+  controls,
+  tooltipProps,
+  isLastStep,
+}: TooltipRenderProps) => {
+  const { setStepIndex, finishTour } = useTourStore();
+  const navigate = useNavigate();
+  return (
+    <div
+      {...tooltipProps}
+      className="bg-card w-full max-w-sm border border-border rounded-xl shadow-2xl flex flex-col overflow-hidden animate-fade-in"
+    >
+      {/* Top blue accent bar */}
+      <div className="h-1 w-full bg-gradient-to-r from-primary via-blue-400 to-primary" />
+      
+      {/* Header */}
+      <div className="px-5 pt-5 pb-3 flex items-start justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            <Play className="h-4 w-4 text-primary" />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-foreground m-0 p-0 leading-none">
+              {step.title}
+            </h3>
+            <span className="text-[10px] uppercase font-bold text-muted-foreground mt-1 block tracking-wider">
+              Passo {index + 1} de {STEPS.length}
+            </span>
+          </div>
+        </div>
+        
+        {/* Close Button */}
+        <button
+          onClick={() => {
+            controls.close();
+            finishTour();
+          }}
+          className="p-1 rounded-md text-muted-foreground hover:bg-elevated hover:text-foreground transition-colors shrink-0"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
 
-/* ─── Hook ─── */
-export const useTutorial = () => {
-  const hasSeen = localStorage.getItem(STORAGE_KEY) === '1';
+      {/* Content */}
+      <div className="px-5 pb-4">
+        <p className="text-sm text-text-secondary leading-relaxed">
+          {step.content}
+        </p>
+      </div>
 
-  const startTutorial = useCallback(() => {
-    window.dispatchEvent(new CustomEvent('playtrack:tutorial:start'));
-  }, []);
+      {/* Footer / Progression */}
+      <div className="px-5 pb-4 flex items-center justify-between">
+        {/* Progress dots */}
+        <div className="flex items-center gap-1.5">
+          {STEPS.map((_, i) => (
+            <div
+              key={i}
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                i === index ? 'w-5 bg-primary' : i < index ? 'w-1.5 bg-primary/40' : 'w-1.5 bg-border'
+              }`}
+            />
+          ))}
+        </div>
 
-  const markSeen = useCallback(() => {
-    localStorage.setItem(STORAGE_KEY, '1');
-  }, []);
+        {/* Buttons */}
+        <div className="flex items-center gap-2">
+          {index > 0 && !step.hideFooter && (
+            <button
+              onClick={() => {
+                controls.prev();
+                setStepIndex(Math.max(0, index - 1));
+              }}
+              className="px-3 py-1.5 text-xs font-medium text-text-secondary hover:text-foreground rounded-lg transition-colors flex items-center gap-1"
+            >
+              <ArrowLeft className="h-3 w-3" />
+              Voltar
+            </button>
+          )}
 
-  return { hasSeen, startTutorial, markSeen };
+          {step.hideFooter && (
+            <div className="w-full flex justify-center py-2 px-3 mt-1 rounded-lg bg-primary/20 border border-primary/40 animate-pulse transition-all">
+              <span className="text-primary font-bold text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                </span>
+                Interaja com o botão destacado
+              </span>
+            </div>
+          )}
+
+          {!step.hideFooter && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                if (isLastStep) {
+                  controls.close();
+                  finishTour();
+                } else {
+                  controls.next();
+                  if (index === 0) {
+                    window.dispatchEvent(new CustomEvent('tour:open-sidebar'));
+                    setTimeout(() => setStepIndex(1), 150);
+                  } else if (index === 1) {
+                    navigate('/videos');
+                    setTimeout(() => setStepIndex(2), 400);
+                  } else if (index === 2) {
+                    window.dispatchEvent(new CustomEvent('tour:open-modal'));
+                    setTimeout(() => setStepIndex(3), 400);
+                  } else {
+                    setStepIndex(index + 1);
+                  }
+                }
+              }}
+              className="px-4 py-2 bg-primary text-primary-foreground text-xs font-semibold rounded-lg hover:opacity-90 transition-all flex items-center gap-1.5"
+            >
+              {isLastStep ? 'Concluir' : 'Próximo'}
+              {!isLastStep && <ArrowRight className="h-3 w-3" />}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 };
 
-/* ─── Component ─── */
 const OnboardingTutorial = () => {
-  const [active, setActive] = useState(false);
-  const [step, setStep] = useState(0);
-  const navigate = useNavigate();
+  const { run, stepIndex, setStepIndex, finishTour, startTour, hasSeenTour } = useTourStore();
+  const isAuthenticated = useAuthStore((s) => !!s.user);
   const location = useLocation();
-
-  // Listen for start event
-  useEffect(() => {
-    const handler = () => {
-      setStep(0);
-      setActive(true);
-    };
-    window.addEventListener('playtrack:tutorial:start', handler);
-    return () => window.removeEventListener('playtrack:tutorial:start', handler);
-  }, []);
+  const navigate = useNavigate();
 
   // Auto-start on first login
   useEffect(() => {
-    const seen = localStorage.getItem(STORAGE_KEY);
-    if (!seen && location.pathname === '/dashboard') {
-      // Small delay to let the dashboard render first
+    if (isAuthenticated && !hasSeenTour && !run && stepIndex === 0) {
       const t = setTimeout(() => {
-        setStep(0);
-        setActive(true);
-      }, 800);
+        startTour();
+      }, 1000);
       return () => clearTimeout(t);
     }
-  }, [location.pathname]);
+  }, [isAuthenticated, hasSeenTour, run, stepIndex, startTour]);
 
-  // Navigate to step route when step changes
-  useEffect(() => {
-    if (!active) return;
-    const s = STEPS[step];
-    if (s.route && location.pathname !== s.route) {
-      navigate(s.route, { replace: true });
-    }
-  }, [step, active, navigate, location.pathname]);
+  const handleJoyrideCallback = (data: CallBackProps) => {
+    const { status, type, action, index } = data;
+    
+    const finishedStatuses: string[] = [STATUS.FINISHED, STATUS.SKIPPED];
 
-  const close = useCallback(() => {
-    setActive(false);
-    localStorage.setItem(STORAGE_KEY, '1');
-    navigate('/dashboard', { replace: true });
-  }, [navigate]);
-
-  const nextStep = () => {
-    if (step < STEPS.length - 1) {
-      setStep((s) => s + 1);
-    } else {
-      close();
+    // Logic is now bypass-triggered in CustomTooltip directly
+    // This callback is only for passive monitoring and error tracking
+    if (type === 'error:target_not_found') {
+      toast.error(`Tutorial não encontrou o elemento da etapa ${index + 1}. Verifique se o menu lateral está visível!`);
     }
   };
-
-  const prevStep = () => {
-    if (step > 0) setStep((s) => s - 1);
-  };
-
-  if (!active) return null;
-
-  const current = STEPS[step];
-  const isFirst = step === 0;
-  const isLast = step === STEPS.length - 1;
-  const Icon = current.icon;
-  // Welcome step = centered modal; all others = bottom bar
-  const isWelcomeOrDone = isFirst || isLast;
 
   return (
-    <>
-      {/* Overlay — subtle for contextual steps, darker for welcome/done */}
-      <div
-        className={`fixed inset-0 z-[9998] transition-all duration-300 ${
-          isWelcomeOrDone ? 'bg-black/60 backdrop-blur-sm' : 'bg-black/20'
-        }`}
-        onClick={isWelcomeOrDone ? undefined : close}
-      />
-
-      {isWelcomeOrDone ? (
-        /* ═══ Centered modal for welcome + done ═══ */
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          <div className="relative w-full max-w-md bg-card border border-border rounded-2xl shadow-2xl shadow-black/30 overflow-hidden animate-fade-in">
-            <div className="h-1 w-full bg-gradient-to-r from-primary via-blue-400 to-primary" />
-
-            <button
-              onClick={close}
-              className="absolute top-4 right-4 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-elevated transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </button>
-
-            <div className="px-6 pt-6 pb-4 text-center">
-              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <Icon className="h-7 w-7 text-primary" />
-              </div>
-              <h2 className="text-xl font-bold text-foreground mb-2">{current.title}</h2>
-              <p className="text-sm text-text-secondary leading-relaxed max-w-sm mx-auto">{current.description}</p>
-            </div>
-
-            {/* Progress dots */}
-            <div className="flex items-center justify-center gap-1.5 pb-4">
-              {STEPS.map((_, i) => (
-                <div
-                  key={i}
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
-                    i === step ? 'w-6 bg-primary' : i < step ? 'w-1.5 bg-primary/40' : 'w-1.5 bg-border'
-                  }`}
-                />
-              ))}
-            </div>
-
-            <div className="px-6 pb-6 flex items-center justify-between gap-3">
-              {isFirst ? (
-                <>
-                  <button onClick={close} className="px-4 py-2.5 rounded-lg text-sm text-text-secondary hover:text-foreground transition-colors font-medium">
-                    Pular tutorial
-                  </button>
-                  <button onClick={nextStep} className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-all">
-                    Começar <ArrowRight className="h-4 w-4" />
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button onClick={prevStep} className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg text-sm text-text-secondary hover:text-foreground transition-colors font-medium">
-                    <ArrowLeft className="h-4 w-4" /> Voltar
-                  </button>
-                  <button onClick={nextStep} className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-all">
-                    Começar a usar <ArrowRight className="h-4 w-4" />
-                  </button>
-                </>
-              )}
-            </div>
-
-            <div className="absolute top-4 left-5 text-xs text-muted-foreground font-medium">
-              {step + 1}/{STEPS.length}
-            </div>
-          </div>
-        </div>
-      ) : (
-        /* ═══ Bottom bar for contextual steps ═══ */
-        <div className="fixed bottom-0 left-0 right-0 z-[9999] p-4 animate-fade-in">
-          <div className="max-w-2xl mx-auto bg-card border border-border rounded-xl shadow-2xl shadow-black/40 overflow-hidden">
-            {/* Top gradient accent */}
-            <div className="h-0.5 w-full bg-gradient-to-r from-primary via-blue-400 to-primary" />
-
-            <div className="p-4 flex items-start gap-4">
-              {/* Icon */}
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                <Icon className="h-5 w-5 text-primary" />
-              </div>
-
-              {/* Text */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="text-sm font-bold text-foreground">{current.title}</h3>
-                  <span className="text-[10px] text-muted-foreground font-medium bg-elevated px-1.5 py-0.5 rounded">{step + 1}/{STEPS.length}</span>
-                </div>
-                <p className="text-xs text-text-secondary leading-relaxed">{current.description}</p>
-              </div>
-
-              {/* Close */}
-              <button onClick={close} className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-elevated transition-colors shrink-0">
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-
-            {/* Bottom row: progress + actions */}
-            <div className="px-4 pb-3 flex items-center justify-between">
-              {/* Progress dots */}
-              <div className="flex items-center gap-1">
-                {STEPS.map((_, i) => (
-                  <div
-                    key={i}
-                    className={`h-1 rounded-full transition-all duration-300 ${
-                      i === step ? 'w-4 bg-primary' : i < step ? 'w-1 bg-primary/40' : 'w-1 bg-border'
-                    }`}
-                  />
-                ))}
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center gap-2">
-                <button onClick={prevStep} className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs text-text-secondary hover:text-foreground transition-colors font-medium">
-                  <ArrowLeft className="h-3 w-3" /> Voltar
-                </button>
-                <button onClick={nextStep} className="flex items-center gap-1 px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:opacity-90 transition-all">
-                  Próximo <ArrowRight className="h-3 w-3" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+    <Joyride
+      callback={handleJoyrideCallback}
+      run={run}
+      stepIndex={stepIndex}
+      steps={STEPS}
+      tooltipComponent={CustomTooltip}
+      floaterProps={{
+        hideArrow: true,
+        styles: {
+          floater: {
+            filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.2))',
+          }
+        }
+      }}
+      styles={{
+        options: {
+          overlayColor: 'rgba(0, 0, 0, 0.65)',
+          zIndex: 10000,
+          primaryColor: 'hsl(var(--primary))',
+        }
+      }}
+    />
   );
 };
 
 export default OnboardingTutorial;
-

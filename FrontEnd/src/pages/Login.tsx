@@ -34,7 +34,7 @@ const Login = () => {
   return (
     <div className="min-h-screen flex">
       {/* Left branding */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col items-center justify-center relative overflow-hidden bg-card">
+      <div className="hidden lg:flex lg:w-1/2 flex-col items-center justify-center relative overflow-hidden bg-card border-r border-border/30">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,hsl(var(--primary)/0.15),transparent_60%)]" />
         <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle, hsl(var(--border)) 1px, transparent 1px)', backgroundSize: '24px 24px', opacity: 0.3 }} />
         <div className="relative z-10 text-center px-8">
@@ -52,7 +52,7 @@ const Login = () => {
       </div>
 
       {/* Right form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8" style={{ backgroundColor: 'hsl(var(--surface))' }}>
         <div className="w-full max-w-md">
           <div className="lg:hidden flex items-center gap-2 mb-8">
             <img src="/logo.png" alt="PlayTrack" className="h-8 w-8 object-contain" />
