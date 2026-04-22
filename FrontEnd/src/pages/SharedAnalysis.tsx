@@ -25,9 +25,19 @@ const contextValueLabels: Record<string, string> = {
   meu_time: 'Meu time',
   outro_time: 'Outro time',
   tactical: 'Tática',
+  tática: 'Tática',
   statistical: 'Estatística',
+  estatística: 'Estatística',
   both: 'Ambos',
+  ambos: 'Ambos',
   live: 'Presencial',
+  presencial: 'Presencial',
+  game: 'Jogo',
+  jogo: 'Jogo',
+  training: 'Treino',
+  treino: 'Treino',
+  study: 'Estudo',
+  estudo: 'Estudo',
 };
 
 const formatContextValue = (value?: string) => {
