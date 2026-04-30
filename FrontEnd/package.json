@@ -92,6 +92,7 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",
     "vite": "^6.4.2",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "@types/youtube": "^0.1.0"
   }
 }
